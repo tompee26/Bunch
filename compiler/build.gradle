@@ -1,0 +1,46 @@
+apply plugin: 'java-library'
+apply plugin: 'kotlin'
+apply plugin: 'kotlin-kapt'
+apply plugin: 'com.novoda.bintray-release'
+
+sourceCompatibility = JavaVersion.VERSION_1_7
+targetCompatibility = JavaVersion.VERSION_1_7
+
+publish {
+    def groupProjectID = 'com.tompee.bunch'
+    def artifactProjectID = 'compiler'
+    def publishVersionID = project.publishVersion
+
+    userOrg = 'tompee26'
+    repoName = 'Bunch'
+    groupId = groupProjectID
+    artifactId = artifactProjectID
+    publishVersion = publishVersionID
+    desc = 'Compiler package for Bunch'
+    website = 'https://github.com/tompee26/Bunch'
+}
+
+sourceSets {
+    generated {
+        java {
+            srcDirs "${buildDir}/generated/source/kapt/"
+        }
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+
+    def dagger = "2.25.2"
+    implementation "com.google.dagger:dagger:$dagger"
+    kapt "com.google.dagger:dagger-compiler:$dagger"
+
+    def assistedInject = '0.5.2'
+    compileOnly "com.squareup.inject:assisted-inject-annotations-dagger2:$assistedInject"
+    kapt "com.squareup.inject:assisted-inject-processor-dagger2:$assistedInject"
+
+    def incap = "0.2"
+    compileOnly "net.ltgt.gradle.incap:incap:$incap"
+    kapt "net.ltgt.gradle.incap:incap-processor:$incap"
+}

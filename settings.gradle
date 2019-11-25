@@ -1,2 +1,2 @@
-include ':app', ':annotation'
+include ':app', ':annotation', ':compiler'
 rootProject.name='Bunch'
