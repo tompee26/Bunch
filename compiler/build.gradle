@@ -32,7 +32,6 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
     implementation project(':annotation')
-    implementation 'com.squareup:kotlinpoet:1.4.4'
 
     implementation "com.google.auto.service:auto-service:1.0-rc6"
     kapt "com.google.auto.service:auto-service:1.0-rc6"
@@ -48,4 +47,10 @@ dependencies {
     def incap = "0.2"
     compileOnly "net.ltgt.gradle.incap:incap:$incap"
     kapt "net.ltgt.gradle.incap:incap-processor:$incap"
+
+    def kotlinPoet = "1.4.4"
+    implementation "com.squareup:kotlinpoet:$kotlinPoet"
+    implementation "com.squareup:kotlinpoet-metadata:$kotlinPoet"
+    implementation "com.squareup:kotlinpoet-metadata-specs:$kotlinPoet"
+    implementation "com.squareup:kotlinpoet-classinspector-elements:$kotlinPoet"
 }
