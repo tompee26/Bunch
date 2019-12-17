@@ -3,6 +3,7 @@ package com.tompee.bunch.compiler
 import com.google.auto.service.AutoService
 import com.tompee.bunch.annotation.Bunch
 import com.tompee.bunch.compiler.di.AppComponent
+import com.tompee.bunch.compiler.di.DaggerAppComponent
 import net.ltgt.gradle.incap.IncrementalAnnotationProcessor
 import net.ltgt.gradle.incap.IncrementalAnnotationProcessorType
 import javax.annotation.processing.*
@@ -28,6 +29,9 @@ internal class BunchProcessor : AbstractProcessor() {
     override fun getSupportedSourceVersion(): SourceVersion = SourceVersion.latest()
 
     override fun process(set: MutableSet<out TypeElement>?, env: RoundEnvironment?): Boolean {
+        appComponent = DaggerAppComponent.factory().create(processingEnv)
+        appComponent.inject(this)
+
         return true
     }
 }

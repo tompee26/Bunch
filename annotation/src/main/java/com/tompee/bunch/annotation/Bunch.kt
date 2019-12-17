@@ -5,7 +5,7 @@ package com.tompee.bunch.annotation
  * and type safe methods.
  *
  * @property name bunch name. This will be a type alias of [Bundle].
- * @property setters the default setter function name. by default it will contain a single item named with
+ * @property setters the default setter function name. By default it will contain a single item named `with`
  */
 @Target(AnnotationTarget.CLASS)
 @Retention
