@@ -24,6 +24,8 @@ internal class BunchGenerator @AssistedInject constructor(
      */
     private val property = TypeElementProperties(env, element as TypeElement)
 
+    private val entryFunctionGenerator = EntryFunctionGenerator()
+
     @AssistedInject.Factory
     interface Factory {
         fun create(element: Element): BunchGenerator
@@ -34,6 +36,7 @@ internal class BunchGenerator @AssistedInject constructor(
 
         val classSpec = TypeSpec.classBuilder(name)
             .apply { if (property.isInternal()) addModifiers(KModifier.INTERNAL) }
+            .addType(entryFunctionGenerator.generate(property))
             .build()
 
         val fileSpec = FileSpec.builder(property.getPackageName(), name)

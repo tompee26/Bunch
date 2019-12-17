@@ -1,9 +1,6 @@
 package com.tompee.bunch.compiler
 
-import com.squareup.kotlinpoet.KModifier
-import com.squareup.kotlinpoet.TypeName
-import com.squareup.kotlinpoet.TypeSpec
-import com.squareup.kotlinpoet.asTypeName
+import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.classinspector.elements.ElementsClassInspector
 import com.squareup.kotlinpoet.metadata.ImmutableKmClass
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
@@ -32,6 +29,13 @@ internal class TypeElementProperties(
      */
     fun getBunchAnnotation(): Bunch {
         return typeElement.getAnnotation(Bunch::class.java)
+    }
+
+    /**
+     * Returns the class name from the current package name and the provided bunch name
+     */
+    fun getTargetTypeName(): ClassName {
+        return ClassName(getPackageName(), getBunchAnnotation().name)
     }
 
     /**
