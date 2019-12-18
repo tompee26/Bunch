@@ -2,17 +2,12 @@ package com.tompee.bunch.compiler
 
 import com.squareup.inject.assisted.Assisted
 import com.squareup.inject.assisted.AssistedInject
-import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.FileSpec
-import com.squareup.kotlinpoet.KModifier
-import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import java.io.File
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.Element
 import javax.lang.model.element.TypeElement
-
-internal val BUNDLE = ClassName("android.os", "Bundle")
 
 @KotlinPoetMetadataPreview
 internal class BunchGenerator @AssistedInject constructor(
@@ -24,7 +19,7 @@ internal class BunchGenerator @AssistedInject constructor(
      */
     private val property = TypeElementProperties(env, element as TypeElement)
 
-    private val entryFunctionGenerator = EntryFunctionGenerator()
+    private val entryFunctionGenerator = CompanionGenerator()
 
     @AssistedInject.Factory
     interface Factory {
