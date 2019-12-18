@@ -1,5 +1,8 @@
 package com.tompee.bunch.compiler.di
 
+import com.squareup.kotlinpoet.classinspector.elements.ElementsClassInspector
+import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
+import com.squareup.kotlinpoet.metadata.specs.ClassInspector
 import dagger.Module
 import dagger.Provides
 import javax.annotation.processing.Messager
@@ -9,6 +12,7 @@ import javax.lang.model.util.Elements
 import javax.lang.model.util.Types
 
 @Module
+@KotlinPoetMetadataPreview
 internal object ProcessingModule {
 
     @Singleton
@@ -30,5 +34,12 @@ internal object ProcessingModule {
     @JvmStatic
     fun provideTypes(environment: ProcessingEnvironment): Types {
         return environment.typeUtils
+    }
+
+    @Singleton
+    @Provides
+    @JvmStatic
+    fun provideElementsClassInspector(environment: ProcessingEnvironment): ClassInspector {
+        return ElementsClassInspector.create(environment.elementUtils, environment.typeUtils)
     }
 }

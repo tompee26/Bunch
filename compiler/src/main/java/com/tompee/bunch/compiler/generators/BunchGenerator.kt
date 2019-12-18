@@ -16,13 +16,15 @@ import javax.lang.model.element.TypeElement
 @KotlinPoetMetadataPreview
 internal class BunchGenerator @AssistedInject constructor(
     private val env: ProcessingEnvironment,
+    private val methodGenerator: MethodGenerator,
+    private val javaPropFactory: JavaProperties.Factory,
+    private val kotlinPropFactory: KotlinProperties.Factory,
     @Assisted private val element: Element
 ) {
-    private val javaProperties = JavaProperties(env, element as TypeElement)
-    private val kotlinProperties = KotlinProperties(env, element as TypeElement)
+    private val javaProperties by lazy { javaPropFactory.create(element as TypeElement) }
+    private val kotlinProperties by lazy { kotlinPropFactory.create(element as TypeElement) }
 
     private val entryFunctionGenerator = CompanionGenerator()
-    private val methodGenerator = MethodGenerator()
 
     @AssistedInject.Factory
     interface Factory {

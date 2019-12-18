@@ -1,12 +1,14 @@
 package com.tompee.bunch.compiler.properties
 
+import com.squareup.inject.assisted.Assisted
+import com.squareup.inject.assisted.AssistedInject
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
-import com.squareup.kotlinpoet.classinspector.elements.ElementsClassInspector
 import com.squareup.kotlinpoet.metadata.ImmutableKmClass
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
+import com.squareup.kotlinpoet.metadata.specs.ClassInspector
 import com.squareup.kotlinpoet.metadata.specs.toTypeSpec
 import com.squareup.kotlinpoet.metadata.toImmutableKmClass
 import javax.annotation.processing.ProcessingEnvironment
@@ -19,11 +21,16 @@ import javax.lang.model.element.TypeElement
  * @property typeElement the input type element
  */
 @KotlinPoetMetadataPreview
-internal class KotlinProperties(
+internal class KotlinProperties @AssistedInject constructor(
     private val env: ProcessingEnvironment,
-    private val typeElement: TypeElement
+    private val classInspector: ClassInspector,
+    @Assisted private val typeElement: TypeElement
 ) {
-    private val classInspector = ElementsClassInspector.create(env.elementUtils, env.typeUtils)
+
+    @AssistedInject.Factory
+    interface Factory {
+        fun create(typeElement: TypeElement): KotlinProperties
+    }
 
     /**
      * Returns true if the annotated class is an internal class

@@ -2,11 +2,10 @@ package com.tompee.bunch.compiler.generators
 
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
-import com.tompee.bunch.compiler.BUNDLE
+import com.tompee.bunch.compiler.*
 import com.tompee.bunch.compiler.extensions.wrapProof
 import com.tompee.bunch.compiler.properties.JavaProperties
 import com.tompee.bunch.compiler.properties.KotlinProperties
-import com.tompee.bunch.compiler.typeMap
 
 @KotlinPoetMetadataPreview
 internal class CompanionGenerator {
@@ -17,6 +16,9 @@ internal class CompanionGenerator {
             .addFunction(createDuplicateFunction())
             .addFunction(crossFunction(jProp))
             .addFunctions(createSetters())
+            .addFunction(createParcelableSetter())
+            .addFunction(createParcelablArrayeSetter())
+            .addFunction(createSerializableSetter())
 //            .addFunctions(createGetters())
             .build()
     }
@@ -43,7 +45,12 @@ internal class CompanionGenerator {
                 prefixes.asSequence().map {
                     val functionName = "$it${paramName.capitalize()}"
                     FunSpec.builder(functionName)
-                        .addParameter(ParameterSpec(paramName, funSpec.returnType!!))
+                        .addParameter(
+                            ParameterSpec(
+                                paramName,
+                                funSpec.returnType ?: throw Throwable("Input type not supported")
+                            )
+                        )
                         .returns(jProp.getTargetTypeName())
                         .addStatement("return ${jProp.getTargetTypeName()}(Bundle()).$functionName($paramName)".wrapProof())
                         .build()
@@ -78,6 +85,36 @@ internal class CompanionGenerator {
                 .addStatement("put${it.value}(tag, value)".wrapProof())
                 .build()
         }
+    }
+
+    private fun createParcelableSetter(): FunSpec {
+        return FunSpec.builder("insertParcelable")
+            .addModifiers(KModifier.PRIVATE)
+            .receiver(BUNDLE)
+            .addParameter("tag", STRING)
+            .addParameter("value", PARCELABLE)
+            .addStatement("putParcelable(tag, value)".wrapProof())
+            .build()
+    }
+
+    private fun createParcelablArrayeSetter(): FunSpec {
+        return FunSpec.builder("insertParcelableArray")
+            .addModifiers(KModifier.PRIVATE)
+            .receiver(BUNDLE)
+            .addParameter("tag", STRING)
+            .addParameter("value", PARCELABLE_ARRAY)
+            .addStatement("putParcelableArray(tag, value)".wrapProof())
+            .build()
+    }
+
+    private fun createSerializableSetter(): FunSpec {
+        return FunSpec.builder("insertSerializable")
+            .addModifiers(KModifier.PRIVATE)
+            .receiver(BUNDLE)
+            .addParameter("tag", STRING)
+            .addParameter("value", SERIALIZABLE)
+            .addStatement("putSerializable(tag, value)".wrapProof())
+            .build()
     }
 
     private fun createGetters(): List<FunSpec> {
