@@ -24,17 +24,22 @@ internal class CompanionGenerator {
         jProp: JavaProperties,
         kProp: KotlinProperties
     ): List<FunSpec> {
-        return kProp.getTypeSpec().funSpecs.zip(jProp.getMethods()).toMap()
+        return kProp.getTypeSpec().funSpecs
+            .asSequence()
+            .map { funSpec ->
+                val jFun = jProp.getMethods().first { it.simpleName.toString() == funSpec.name }
+                funSpec to jFun
+            }
             .mapNotNull {
-                val annotation = JavaProperties.getItemAnnotation(it.value)
-                if (annotation == null) null else it.key to annotation
+                val annotation = JavaProperties.getItemAnnotation(it.second)
+                if (annotation == null) null else it.first to annotation
             }
             .flatMap { pair ->
                 val (funSpec, annotation) = pair
                 val paramName = if (annotation.name.isEmpty()) funSpec.name else annotation.name
                 val prefixes =
                     if (annotation.setters.isEmpty()) arrayOf("with") else annotation.setters
-                prefixes.map {
+                prefixes.asSequence().map {
                     val functionName = "$it${paramName.capitalize()}"
                     FunSpec.builder(functionName)
                         .addParameter(ParameterSpec(paramName, funSpec.returnType!!))
@@ -42,7 +47,7 @@ internal class CompanionGenerator {
                         .addStatement("return ${jProp.getTargetTypeName()}(Bundle()).$functionName($paramName)".wrapProof())
                         .build()
                 }
-            }
+            }.toList()
     }
 
     private fun createDuplicateFunction(): FunSpec {
