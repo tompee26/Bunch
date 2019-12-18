@@ -1,9 +1,14 @@
-package com.tompee.bunch.compiler
+package com.tompee.bunch.compiler.generators
 
 import com.squareup.inject.assisted.Assisted
 import com.squareup.inject.assisted.AssistedInject
-import com.squareup.kotlinpoet.*
+import com.squareup.kotlinpoet.FileSpec
+import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
+import com.tompee.bunch.compiler.BunchProcessor
+import com.tompee.bunch.compiler.properties.JavaProperties
+import com.tompee.bunch.compiler.properties.KotlinProperties
 import java.io.File
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.Element
@@ -14,10 +19,8 @@ internal class BunchGenerator @AssistedInject constructor(
     private val env: ProcessingEnvironment,
     @Assisted private val element: Element
 ) {
-    /**
-     * Type element property
-     */
-    private val property = TypeElementProperties(env, element as TypeElement)
+    private val javaProperties = JavaProperties(env, element as TypeElement)
+    private val kotlinProperties = KotlinProperties(env, element as TypeElement)
 
     private val entryFunctionGenerator = CompanionGenerator()
 
@@ -27,14 +30,13 @@ internal class BunchGenerator @AssistedInject constructor(
     }
 
     fun generate() {
-        val name = property.getBunchAnnotation().name
-
+        val name = javaProperties.getBunchAnnotation().name
         val classSpec = TypeSpec.classBuilder(name)
-            .apply { if (property.isInternal()) addModifiers(KModifier.INTERNAL) }
-            .addType(entryFunctionGenerator.generate(property))
+            .apply { if (kotlinProperties.isInternal()) addModifiers(KModifier.INTERNAL) }
+            .addType(entryFunctionGenerator.generate(javaProperties, kotlinProperties))
             .build()
 
-        val fileSpec = FileSpec.builder(property.getPackageName(), name)
+        val fileSpec = FileSpec.builder(javaProperties.getPackageName(), name)
             .addType(classSpec)
             .build()
         val kaptKotlinGeneratedDir =

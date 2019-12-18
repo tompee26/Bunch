@@ -5,6 +5,7 @@ import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import com.tompee.bunch.annotation.Bunch
 import com.tompee.bunch.compiler.di.AppComponent
 import com.tompee.bunch.compiler.di.DaggerAppComponent
+import com.tompee.bunch.compiler.generators.BunchGenerator
 import net.ltgt.gradle.incap.IncrementalAnnotationProcessor
 import net.ltgt.gradle.incap.IncrementalAnnotationProcessorType
 import javax.annotation.processing.*
