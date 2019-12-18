@@ -15,6 +15,7 @@ internal class CompanionGenerator {
         return TypeSpec.companionObjectBuilder()
             .addFunctions(generateEntryFunction(jProp, kProp))
             .addFunction(createDuplicateFunction())
+            .addFunction(crossFunction(jProp))
             .addFunctions(createSetters())
 //            .addFunctions(createGetters())
             .build()
@@ -56,6 +57,14 @@ internal class CompanionGenerator {
             .receiver(BUNDLE)
             .returns(BUNDLE)
             .addStatement("return if (this == Bundle.EMPTY) Bundle() else clone() as Bundle".wrapProof())
+            .build()
+    }
+
+    private fun crossFunction(jProp: JavaProperties): FunSpec {
+        return FunSpec.builder("from")
+            .addParameter("bundle", BUNDLE)
+            .returns(jProp.getTargetTypeName())
+            .addStatement("return ${jProp.getTargetTypeName()}(bundle.duplicate())".wrapProof())
             .build()
     }
 

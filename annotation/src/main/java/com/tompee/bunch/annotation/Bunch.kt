@@ -7,8 +7,8 @@ package com.tompee.bunch.annotation
  * @property name bunch name
  * @property setters the default setter function name. By default it will contain a single item named `with`
  */
-@Target(AnnotationTarget.CLASS)
 @Retention
+@Target(AnnotationTarget.CLASS)
 annotation class Bunch(val name: String, val setters: Array<String> = []) {
 
     /**
@@ -21,6 +21,8 @@ annotation class Bunch(val name: String, val setters: Array<String> = []) {
      *               with bunch. (e.g. bunch_index)
      * @property setters setter function names. A different function is generated for each provided setter.
      */
+    @Retention
+    @Target(AnnotationTarget.FUNCTION)
     annotation class Item(
         val name: String = "",
         val tag: String = "",
