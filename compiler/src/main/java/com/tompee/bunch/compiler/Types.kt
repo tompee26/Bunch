@@ -9,7 +9,7 @@ internal val CHAR_SEQUENCE_ARRAY = ClassName("kotlin", "Array").parameterizedBy(
 internal val STRING_ARRAY = ClassName("kotlin", "Array").parameterizedBy(STRING)
 
 internal val typeMap = mapOf(
-    BINDER to "Binder",
+//    BINDER to "Binder",
     BOOLEAN to "Boolean",
     BOOLEAN_ARRAY to "BooleanArray",
     BUNDLE to "Bundle",
@@ -36,4 +36,28 @@ internal val typeMap = mapOf(
     STRING_ARRAY to "StringArray"
     // TODO: Size
     // TODO: SizeF
+)
+
+internal val primitiveSet = setOf(
+    BOOLEAN,
+    BOOLEAN_ARRAY,
+    BUNDLE,
+    BYTE,
+    BYTE_ARRAY,
+    CHAR,
+    CHAR_ARRAY,
+    CHAR_SEQUENCE,
+    CHAR_SEQUENCE_ARRAY,
+    DOUBLE,
+    DOUBLE_ARRAY,
+    FLOAT,
+    FLOAT_ARRAY,
+    INT,
+    INT_ARRAY,
+    LONG,
+    LONG_ARRAY,
+    SHORT,
+    SHORT_ARRAY,
+    STRING,
+    STRING_ARRAY
 )

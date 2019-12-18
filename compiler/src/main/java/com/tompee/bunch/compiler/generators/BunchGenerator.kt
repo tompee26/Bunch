@@ -2,10 +2,9 @@ package com.tompee.bunch.compiler.generators
 
 import com.squareup.inject.assisted.Assisted
 import com.squareup.inject.assisted.AssistedInject
-import com.squareup.kotlinpoet.FileSpec
-import com.squareup.kotlinpoet.KModifier
-import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
+import com.tompee.bunch.compiler.BUNDLE
 import com.tompee.bunch.compiler.BunchProcessor
 import com.tompee.bunch.compiler.properties.JavaProperties
 import com.tompee.bunch.compiler.properties.KotlinProperties
@@ -23,6 +22,7 @@ internal class BunchGenerator @AssistedInject constructor(
     private val kotlinProperties = KotlinProperties(env, element as TypeElement)
 
     private val entryFunctionGenerator = CompanionGenerator()
+    private val methodGenerator = MethodGenerator()
 
     @AssistedInject.Factory
     interface Factory {
@@ -31,9 +31,21 @@ internal class BunchGenerator @AssistedInject constructor(
 
     fun generate() {
         val name = javaProperties.getBunchAnnotation().name
+        val constructor = FunSpec.constructorBuilder()
+            .addParameter("bundle", BUNDLE)
+            .build()
+
         val classSpec = TypeSpec.classBuilder(name)
             .apply { if (kotlinProperties.isInternal()) addModifiers(KModifier.INTERNAL) }
+            .primaryConstructor(constructor)
+            .addProperty(
+                PropertySpec.builder("bundle", BUNDLE)
+                    .initializer("bundle")
+                    .addModifiers(KModifier.PRIVATE)
+                    .build()
+            )
             .addType(entryFunctionGenerator.generate(javaProperties, kotlinProperties))
+            .addFunctions(methodGenerator.generateSetters(javaProperties, kotlinProperties))
             .build()
 
         val fileSpec = FileSpec.builder(javaProperties.getPackageName(), name)

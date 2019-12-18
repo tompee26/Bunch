@@ -16,7 +16,7 @@ internal class CompanionGenerator {
             .addFunctions(generateEntryFunction(jProp, kProp))
             .addFunction(createDuplicateFunction())
             .addFunctions(createSetters())
-            .addFunctions(createGetters())
+//            .addFunctions(createGetters())
             .build()
     }
 
@@ -39,7 +39,7 @@ internal class CompanionGenerator {
                     FunSpec.builder(functionName)
                         .addParameter(ParameterSpec(paramName, funSpec.returnType!!))
                         .returns(jProp.getTargetTypeName())
-                        .addStatement("return ${jProp.getTargetTypeName()}().$functionName($paramName)".wrapProof())
+                        .addStatement("return ${jProp.getTargetTypeName()}(Bundle()).$functionName($paramName)".wrapProof())
                         .build()
                 }
             }

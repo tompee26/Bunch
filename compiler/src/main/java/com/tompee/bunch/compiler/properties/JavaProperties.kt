@@ -23,6 +23,11 @@ internal class JavaProperties(
     }
 
     /**
+     * Returns the underlying type element
+     */
+    fun getElement(): TypeElement = typeElement
+
+    /**
      * Returns the [Bunch] annotation instance tied to the type element
      */
     fun getBunchAnnotation(): Bunch {
