@@ -3,12 +3,14 @@ package com.tompee.bunch
 import android.os.Parcelable
 import com.tompee.bunch.annotation.Bunch
 import kotlinx.android.parcel.Parcelize
+import java.io.Serializable
+
+open class ParentParcelable(val value: Int)
 
 @Parcelize
-open class ParentParcelable(val value: Int) : Parcelable
+class ChildParcelable : ParentParcelable(0), Parcelable
 
-@Parcelize
-class ChildParcelable : ParentParcelable(0)
+class MySerializable : ParentParcelable(0), Serializable
 
 @Bunch("Args")
 internal abstract class TestClass {
@@ -81,6 +83,9 @@ internal abstract class TestClass {
 
     @Bunch.Item("myChild", tag = "_of_war")
     abstract fun parcelable(): ChildParcelable
+
+    @Bunch.Item
+    abstract fun serializable(): MySerializable
 
 //    abstract fun stop()
 }

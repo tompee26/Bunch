@@ -9,6 +9,7 @@ import com.squareup.kotlinpoet.metadata.specs.ClassInspector
 import com.sun.tools.javac.code.Symbol
 import com.sun.tools.javac.code.Type
 import com.tompee.bunch.compiler.PARCELABLE
+import com.tompee.bunch.compiler.SERIALIZABLE
 import com.tompee.bunch.compiler.extensions.wrapProof
 import com.tompee.bunch.compiler.primitiveSet
 import com.tompee.bunch.compiler.properties.JavaProperties
@@ -93,6 +94,9 @@ internal class MethodGenerator @Inject constructor(
             typeElement.isParcelable() -> {
                 "return apply { bundle.insertParcelable(\"$tag\", $paramName)}".wrapProof()
             }
+            typeElement.isSerializable() -> {
+                "return apply { bundle.insertSerializable(\"$tag\", $paramName)}".wrapProof()
+            }
             else -> null
         }
     }
@@ -103,6 +107,14 @@ internal class MethodGenerator @Inject constructor(
         val typeSet = mutableSetOf<Type.ClassType>()
         findAllTypes(typeSet, classType)
         return typeSet.any { it.asTypeName() == PARCELABLE }
+    }
+
+    private fun TypeElement.isSerializable(): Boolean {
+        val classSymbol = this as? Symbol.ClassSymbol ?: return false
+        val classType = classSymbol.type as? Type.ClassType ?: return false
+        val typeSet = mutableSetOf<Type.ClassType>()
+        findAllTypes(typeSet, classType)
+        return typeSet.any { it.asTypeName() == SERIALIZABLE }
     }
 
     private fun findAllTypes(set: MutableSet<Type.ClassType>, type: Type.ClassType) {
