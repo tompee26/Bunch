@@ -1,6 +1,5 @@
 package com.tompee.bunch
 
-import android.os.Bundle
 import android.os.Parcelable
 import com.tompee.bunch.annotation.Bunch
 import kotlinx.android.parcel.Parcelize
@@ -80,7 +79,7 @@ internal abstract class TestClass {
 //    @Bunch.Item
 //    abstract fun stringArray(): Array<String>
 
-    @Bunch.Item
+    @Bunch.Item("myChild", tag = "_of_war")
     abstract fun parcelable(): ChildParcelable
 
 //    abstract fun stop()
