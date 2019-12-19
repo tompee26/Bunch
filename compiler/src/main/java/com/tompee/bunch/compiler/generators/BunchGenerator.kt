@@ -17,14 +17,13 @@ import javax.lang.model.element.TypeElement
 internal class BunchGenerator @AssistedInject constructor(
     private val env: ProcessingEnvironment,
     private val methodGenerator: MethodGenerator,
+    private val companionGenerator: CompanionGenerator,
     private val javaPropFactory: JavaProperties.Factory,
     private val kotlinPropFactory: KotlinProperties.Factory,
     @Assisted private val element: Element
 ) {
     private val javaProperties by lazy { javaPropFactory.create(element as TypeElement) }
     private val kotlinProperties by lazy { kotlinPropFactory.create(element as TypeElement) }
-
-    private val entryFunctionGenerator = CompanionGenerator()
 
     @AssistedInject.Factory
     interface Factory {
@@ -46,7 +45,7 @@ internal class BunchGenerator @AssistedInject constructor(
                     .addModifiers(KModifier.PRIVATE)
                     .build()
             )
-            .addType(entryFunctionGenerator.generate(javaProperties, kotlinProperties))
+            .addType(companionGenerator.generate(javaProperties, kotlinProperties))
             .addFunctions(methodGenerator.generateSetters(javaProperties, kotlinProperties))
             .build()
 

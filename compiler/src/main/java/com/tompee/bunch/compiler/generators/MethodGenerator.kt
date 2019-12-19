@@ -1,13 +1,10 @@
 package com.tompee.bunch.compiler.generators
 
-import com.squareup.kotlinpoet.FunSpec
-import com.squareup.kotlinpoet.ParameterSpec
-import com.squareup.kotlinpoet.TypeName
-import com.squareup.kotlinpoet.asTypeName
+import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
-import com.squareup.kotlinpoet.metadata.specs.ClassInspector
 import com.sun.tools.javac.code.Symbol
 import com.sun.tools.javac.code.Type
+import com.tompee.bunch.compiler.JAVA_LIST
 import com.tompee.bunch.compiler.PARCELABLE
 import com.tompee.bunch.compiler.SERIALIZABLE
 import com.tompee.bunch.compiler.extensions.wrapProof
@@ -16,14 +13,9 @@ import com.tompee.bunch.compiler.properties.JavaProperties
 import com.tompee.bunch.compiler.properties.KotlinProperties
 import javax.inject.Inject
 import javax.lang.model.element.Element
-import javax.lang.model.element.TypeElement
-import javax.lang.model.util.Types
 
 @KotlinPoetMetadataPreview
-internal class MethodGenerator @Inject constructor(
-    private val types: Types,
-    private val classInspector: ClassInspector
-) {
+internal class MethodGenerator @Inject constructor() {
 
     fun generateSetters(jProp: JavaProperties, kProp: KotlinProperties): List<FunSpec> {
         return kProp.getTypeSpec().funSpecs
@@ -54,13 +46,12 @@ internal class MethodGenerator @Inject constructor(
             if (annotation.setters.isEmpty()) arrayOf("with") else annotation.setters
         val tag = if (annotation.tag.isEmpty()) "tag_${funSpec.name}" else annotation.tag
         val method = element as Symbol.MethodSymbol
-        val type = types.asElement(method.returnType) as TypeElement
+        val type = (method.type as? Type.MethodType)?.restype
+            ?: throw Throwable("Input type not supported")
 
         return prefixes.asSequence().map {
             val functionName = "$it${paramName.capitalize()}"
-            val statement = generatePrimitiveStatement(tag, funSpec, paramName)
-                ?: generateSpecialStatement(tag, funSpec, type, paramName)
-                ?: throw Throwable("Input type is not supported")
+            val statement = generateStatement(tag, funSpec, type, paramName)
             FunSpec.builder(functionName)
                 .addParameter(
                     ParameterSpec(
@@ -74,44 +65,45 @@ internal class MethodGenerator @Inject constructor(
         }
     }
 
-    private fun generatePrimitiveStatement(
-        tag: String,
-        funSpec: FunSpec,
-        paramName: String
-    ): String? {
-        return if (funSpec.returnType in primitiveSet) {
-            "return apply { bundle.insert(\"$tag\", $paramName)}".wrapProof()
-        } else null
-    }
-
-    private fun generateSpecialStatement(
-        tag: String,
-        funSpec: FunSpec,
-        typeElement: TypeElement,
-        paramName: String
-    ): String? {
+    private fun generateStatement(
+        tag: String, funSpec: FunSpec, type: Type, param: String
+    ): String {
         return when {
-            typeElement.isParcelable() -> {
-                "return apply { bundle.insertParcelable(\"$tag\", $paramName)}".wrapProof()
+            funSpec.returnType in primitiveSet -> {
+                "return apply { bundle.insert(\"$tag\", $param)}".wrapProof()
             }
-            typeElement.isSerializable() -> {
-                "return apply { bundle.insertSerializable(\"$tag\", $paramName)}".wrapProof()
+            type.isParcelableList() -> {
+                "return apply { bundle.insertParcelableList(\"$tag\", $param)}".wrapProof()
             }
-            else -> null
+            type.isParcelable() -> {
+                "return apply { bundle.insertParcelable(\"$tag\", $param)}".wrapProof()
+            }
+            type.isSerializable() -> {
+                "return apply { bundle.insertSerializable(\"$tag\", $param)}".wrapProof()
+            }
+            else -> throw Throwable("Input type is not supported")
         }
     }
 
-    private fun TypeElement.isParcelable(): Boolean {
-        val classSymbol = this as? Symbol.ClassSymbol ?: return false
-        val classType = classSymbol.type as? Type.ClassType ?: return false
+    private fun Type.isParcelableList(): Boolean {
+        val classType = this as? Type.ClassType ?: return false
+        val name = (classType.asTypeName() as? ParameterizedTypeName)?.rawType ?: return false
+        if (name != JAVA_LIST) return false
+        val typeParam = classType.typarams_field.first() as? Type.ClassType ?: return false
+        val typeSet = mutableSetOf<Type.ClassType>()
+        findAllTypes(typeSet, typeParam)
+        return typeSet.any { it.asTypeName() == PARCELABLE }
+    }
+
+    private fun Type.isParcelable(): Boolean {
+        val classType = this as? Type.ClassType ?: return false
         val typeSet = mutableSetOf<Type.ClassType>()
         findAllTypes(typeSet, classType)
         return typeSet.any { it.asTypeName() == PARCELABLE }
     }
 
-    private fun TypeElement.isSerializable(): Boolean {
-        val classSymbol = this as? Symbol.ClassSymbol ?: return false
-        val classType = classSymbol.type as? Type.ClassType ?: return false
+    private fun Type.isSerializable(): Boolean {
+        val classType = this as? Type.ClassType ?: return false
         val typeSet = mutableSetOf<Type.ClassType>()
         findAllTypes(typeSet, classType)
         return typeSet.any { it.asTypeName() == SERIALIZABLE }

@@ -6,9 +6,10 @@ import com.tompee.bunch.compiler.*
 import com.tompee.bunch.compiler.extensions.wrapProof
 import com.tompee.bunch.compiler.properties.JavaProperties
 import com.tompee.bunch.compiler.properties.KotlinProperties
+import javax.inject.Inject
 
 @KotlinPoetMetadataPreview
-internal class CompanionGenerator {
+internal class CompanionGenerator @Inject constructor() {
 
     fun generate(jProp: JavaProperties, kProp: KotlinProperties): TypeSpec {
         return TypeSpec.companionObjectBuilder()
@@ -17,7 +18,7 @@ internal class CompanionGenerator {
             .addFunction(crossFunction(jProp))
             .addFunctions(createSetters())
             .addFunction(createParcelableSetter())
-            .addFunction(createParcelablArrayeSetter())
+            .addFunction(createParcelableListSetter())
             .addFunction(createSerializableSetter())
 //            .addFunctions(createGetters())
             .build()
@@ -97,13 +98,13 @@ internal class CompanionGenerator {
             .build()
     }
 
-    private fun createParcelablArrayeSetter(): FunSpec {
-        return FunSpec.builder("insertParcelableArray")
+    private fun createParcelableListSetter(): FunSpec {
+        return FunSpec.builder("insertParcelableList")
             .addModifiers(KModifier.PRIVATE)
             .receiver(BUNDLE)
             .addParameter("tag", STRING)
-            .addParameter("value", PARCELABLE_ARRAY)
-            .addStatement("putParcelableArray(tag, value)".wrapProof())
+            .addParameter("value", PARCELABLE_LIST)
+            .addStatement("putParcelableArrayList(tag, ArrayList(value))".wrapProof())
             .build()
     }
 

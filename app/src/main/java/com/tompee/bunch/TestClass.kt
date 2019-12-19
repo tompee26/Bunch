@@ -87,5 +87,7 @@ internal abstract class TestClass {
     @Bunch.Item
     abstract fun serializable(): MySerializable
 
+    @Bunch.Item
+    abstract fun parcelableList(): List<ChildParcelable>
 //    abstract fun stop()
 }

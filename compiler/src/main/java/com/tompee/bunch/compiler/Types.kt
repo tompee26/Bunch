@@ -8,8 +8,9 @@ internal val BINDER = ClassName("android.os", "IBinder")
 internal val CHAR_SEQUENCE_ARRAY = ClassName("kotlin", "Array").parameterizedBy(CHAR_SEQUENCE)
 internal val STRING_ARRAY = ClassName("kotlin", "Array").parameterizedBy(STRING)
 internal val PARCELABLE = ClassName("android.os", "Parcelable")
-internal val PARCELABLE_ARRAY = ClassName("kotlin", "Array").parameterizedBy(PARCELABLE)
+internal val PARCELABLE_LIST = ClassName("kotlin.collections", "List").parameterizedBy(PARCELABLE)
 internal val SERIALIZABLE = ClassName("java.io", "Serializable")
+internal val JAVA_LIST = ClassName("java.util", "List")
 
 internal val typeMap = mapOf(
 //    BINDER to "Binder",
@@ -31,7 +32,6 @@ internal val typeMap = mapOf(
     LONG to "Long",
     LONG_ARRAY to "LongArray",
     PARCELABLE to "Parcelable",
-    PARCELABLE_ARRAY to "ParcelableArray",
     SERIALIZABLE to "Serializable",
     SHORT to "Short",
     SHORT_ARRAY to "ShortArray",
