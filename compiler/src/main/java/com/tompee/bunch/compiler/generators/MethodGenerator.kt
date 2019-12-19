@@ -4,11 +4,8 @@ import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import com.sun.tools.javac.code.Symbol
 import com.sun.tools.javac.code.Type
-import com.tompee.bunch.compiler.JAVA_LIST
-import com.tompee.bunch.compiler.PARCELABLE
-import com.tompee.bunch.compiler.SERIALIZABLE
+import com.tompee.bunch.compiler.*
 import com.tompee.bunch.compiler.extensions.wrapProof
-import com.tompee.bunch.compiler.primitiveSet
 import com.tompee.bunch.compiler.properties.JavaProperties
 import com.tompee.bunch.compiler.properties.KotlinProperties
 import javax.inject.Inject
@@ -24,6 +21,13 @@ internal class MethodGenerator @Inject constructor() {
             .filter { JavaProperties.getItemAnnotation(it.second) != null }
             .flatMap { generateSequence(it.first, it.second, jProp.getTargetTypeName()) }
             .toList()
+    }
+
+    fun generateCollector(): FunSpec {
+        return FunSpec.builder("collect")
+            .returns(BUNDLE)
+            .addStatement("return bundle".wrapProof())
+            .build()
     }
 
     private fun pairWithJavaMethod(
