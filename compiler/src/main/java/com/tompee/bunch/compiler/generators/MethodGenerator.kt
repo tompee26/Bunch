@@ -79,6 +79,9 @@ internal class MethodGenerator @Inject constructor() {
             type.isParcelableList() -> {
                 "return apply { bundle.insertParcelableList(\"$tag\", $param)}".wrapProof()
             }
+            type.isEnum() -> {
+                "return apply { bundle.insert(\"$tag\", $param.name)}".wrapProof()
+            }
             type.isParcelable() -> {
                 "return apply { bundle.insertParcelable(\"$tag\", $param)}".wrapProof()
             }
@@ -87,6 +90,13 @@ internal class MethodGenerator @Inject constructor() {
             }
             else -> throw Throwable("Input type is not supported")
         }
+    }
+
+    private fun Type.isEnum(): Boolean {
+        val classType = this as? Type.ClassType ?: return false
+        val superType = classType.supertype_field as? Type.ClassType ?: return false
+        val name = (superType.asTypeName() as? ParameterizedTypeName)?.rawType ?: return false
+        return name == JAVA_ENUM
     }
 
     private fun Type.isParcelableList(): Boolean {

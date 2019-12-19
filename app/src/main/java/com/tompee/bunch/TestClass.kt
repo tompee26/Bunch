@@ -12,6 +12,11 @@ class ChildParcelable : ParentParcelable(0), Parcelable
 
 class MySerializable : ParentParcelable(0), Serializable
 
+enum class MyEnum {
+    ITEM_1,
+    ITEM_2
+}
+
 @Bunch("Args")
 internal abstract class TestClass {
 
@@ -89,5 +94,8 @@ internal abstract class TestClass {
 
     @Bunch.Item
     abstract fun parcelableList(): List<ChildParcelable>
+
+    @Bunch.Item
+    abstract fun myEnum(): MyEnum
 //    abstract fun stop()
 }

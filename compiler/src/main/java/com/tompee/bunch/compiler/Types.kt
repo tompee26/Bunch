@@ -11,6 +11,7 @@ internal val PARCELABLE = ClassName("android.os", "Parcelable")
 internal val PARCELABLE_LIST = ClassName("kotlin.collections", "List").parameterizedBy(PARCELABLE)
 internal val SERIALIZABLE = ClassName("java.io", "Serializable")
 internal val JAVA_LIST = ClassName("java.util", "List")
+internal val JAVA_ENUM = ClassName("java.lang", "Enum")
 
 internal val typeMap = mapOf(
 //    BINDER to "Binder",
