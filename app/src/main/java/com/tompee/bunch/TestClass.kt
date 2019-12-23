@@ -19,7 +19,7 @@ enum class MyEnum {
 }
 
 @Bunch("Args")
-internal abstract class TestClass {
+abstract class TestClass {
 
     companion object {
 
