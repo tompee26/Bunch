@@ -77,7 +77,7 @@ abstract class VegetableInfo {
 ```
 
 ```kotlin
-  val tomatoes = Vegetables.from(bundle).squeezeTomatoes()
+val tomatoes = Vegetables.from(bundle).squeezeTomatoes()
 ```
 
 ## Supported Types
@@ -113,7 +113,8 @@ Below is the table of supported types
 ## Default values
 To be able to provide default values, the function definition must be concrete function and returns the default value. To support this, declare a companion object and define the functions inside. 
 
-```kotlin@Bunch("Vegetables")
+```kotlin
+@Bunch("Vegetables")
 abstract class VegetableInfo {
 
     @Bunch.Item
@@ -135,7 +136,7 @@ The getter function `cutCabbage` now will have a non-nullable return type.
 ## Error variants
 If a function returns a nullable type, an `orThrow` variant is also generated.
 
-```kotlin@Bunch("Vegetables")
+```kotlin
 @Bunch("Vegetables")
 abstract class VegetableInfo {
 
