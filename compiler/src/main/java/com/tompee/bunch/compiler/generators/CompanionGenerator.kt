@@ -10,9 +10,19 @@ import javax.inject.Inject
 import javax.lang.model.element.Element
 import javax.lang.model.element.ElementKind
 
+/**
+ * Generates the companion object of the Bunch. The methods include entry setter methods.
+ */
 @KotlinPoetMetadataPreview
 internal class CompanionGenerator @Inject constructor() {
 
+    /**
+     * Generates the companion method type spec
+     *
+     * @param jProp Java properties
+     * @param kProp Kotlin properties
+     * @return the companion object type spec
+     */
     fun generate(jProp: JavaProperties, kProp: KotlinProperties): TypeSpec {
         return TypeSpec.companionObjectBuilder()
             .addFunctions(generateEntryFunction(jProp, kProp))
@@ -25,6 +35,13 @@ internal class CompanionGenerator @Inject constructor() {
             .build()
     }
 
+    /**
+     * Generates the entye methods. It checks for both source class functions and companion object methods
+     *
+     * @param jProp Java properties
+     * @param kProp Kotlin properties
+     * @return the list of function specs that will be generated
+     */
     private fun generateEntryFunction(
         jProp: JavaProperties,
         kProp: KotlinProperties
@@ -38,6 +55,15 @@ internal class CompanionGenerator @Inject constructor() {
             .toList()
     }
 
+    /**
+     * Pairs a kotlin method in the class and/or the companion object with its Java symbol counterpart.
+     * Both are necessary because kotlin types are easier to work with in terms of type names and
+     * Java symbols are necessary for type hierarchy checking.
+     *
+     * @param funSpec kotlin function spec
+     * @param jProp Java property
+     * @return the pair of kotlin and java method
+     */
     private fun pairWithJavaMethod(
         funSpec: FunSpec,
         jProp: JavaProperties
@@ -54,6 +80,14 @@ internal class CompanionGenerator @Inject constructor() {
         return funSpec to jFun
     }
 
+    /**
+     * Generates the setter function spec sequence. This takes into consideration the custom tags
+     * and setter functions.
+     *
+     * @param funSpec kotlin function spec
+     * @param element the method element (ElementKind.METHOD)
+     * @param name the output class name
+     */
     private fun generateSequence(
         funSpec: FunSpec,
         element: Element,
@@ -82,6 +116,9 @@ internal class CompanionGenerator @Inject constructor() {
         }
     }
 
+    /**
+     * Generates the duplicator function
+     */
     private fun createDuplicateFunction(): FunSpec {
         return FunSpec.builder("duplicate")
             .addModifiers(KModifier.PRIVATE)
@@ -91,6 +128,9 @@ internal class CompanionGenerator @Inject constructor() {
             .build()
     }
 
+    /**
+     * Generates the world crossing functions
+     */
     private fun crossFunction(jProp: JavaProperties): FunSpec {
         return FunSpec.builder("from")
             .addParameter("bundle", BUNDLE)
@@ -99,6 +139,9 @@ internal class CompanionGenerator @Inject constructor() {
             .build()
     }
 
+    /**
+     * Generates the primitive setter functions
+     */
     private fun createSetters(): List<FunSpec> {
         return typeMap.map {
             FunSpec.builder("insert")
@@ -111,6 +154,9 @@ internal class CompanionGenerator @Inject constructor() {
         }
     }
 
+    /**
+     * Generates the parcelable setter function
+     */
     private fun createParcelableSetter(): FunSpec {
         return FunSpec.builder("insertParcelable")
             .addModifiers(KModifier.PRIVATE)
@@ -121,6 +167,9 @@ internal class CompanionGenerator @Inject constructor() {
             .build()
     }
 
+    /**
+     * Generates the parcelable list setter function
+     */
     private fun createParcelableListSetter(): FunSpec {
         return FunSpec.builder("insertParcelableList")
             .addModifiers(KModifier.PRIVATE)
@@ -131,6 +180,9 @@ internal class CompanionGenerator @Inject constructor() {
             .build()
     }
 
+    /**
+     * Generates the serializable setter function
+     */
     private fun createSerializableSetter(): FunSpec {
         return FunSpec.builder("insertSerializable")
             .addModifiers(KModifier.PRIVATE)
