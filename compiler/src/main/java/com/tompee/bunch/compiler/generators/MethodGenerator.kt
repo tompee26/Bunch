@@ -570,8 +570,8 @@ internal class MethodGenerator @Inject constructor() {
     private fun findAllTypes(set: MutableSet<Type.ClassType>, type: Type.ClassType) {
         set.add(type)
         type.interfaces_field
-            .filterIsInstance<Type.ClassType>()
-            .forEach { findAllTypes(set, it) }
+            ?.filterIsInstance<Type.ClassType>()
+            ?.forEach { findAllTypes(set, it) }
 
         val superType = type.supertype_field
         if (superType is Type.ClassType) {
