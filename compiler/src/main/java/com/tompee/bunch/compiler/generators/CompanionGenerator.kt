@@ -46,7 +46,8 @@ internal class CompanionGenerator @Inject constructor() {
         jProp: JavaProperties,
         kProp: KotlinProperties
     ): List<FunSpec> {
-        val companionSpecs = kProp.getTypeSpec().typeSpecs.first { it.isCompanion }.funSpecs
+        val companionSpecs =
+            kProp.getTypeSpec().typeSpecs.firstOrNull { it.isCompanion }?.funSpecs ?: emptyList()
         return kProp.getTypeSpec().funSpecs.plus(companionSpecs)
             .asSequence()
             .map { funSpec -> pairWithJavaMethod(funSpec, jProp) }
@@ -70,7 +71,7 @@ internal class CompanionGenerator @Inject constructor() {
     ): Pair<FunSpec, Element> {
         val enclosedElements =
             jProp.getElement().enclosedElements.filter { it.kind == ElementKind.CLASS }
-                .flatMap { it.enclosedElements.filter { it.kind == ElementKind.METHOD } }
+                .flatMap { classes -> classes.enclosedElements.filter { it.kind == ElementKind.METHOD } }
         val jFun =
             jProp.getMethods().plus(enclosedElements).firstOrNull { it.simpleName.toString() == funSpec.name }
                 ?: throw ProcessorException(

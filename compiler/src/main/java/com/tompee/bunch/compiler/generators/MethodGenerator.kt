@@ -62,7 +62,8 @@ internal class MethodGenerator @Inject constructor() {
      * @return the list of function specs that will be generated
      */
     fun generateSetters(jProp: JavaProperties, kProp: KotlinProperties): List<FunSpec> {
-        val companionSpecs = kProp.getTypeSpec().typeSpecs.first { it.isCompanion }.funSpecs
+        val companionSpecs =
+            kProp.getTypeSpec().typeSpecs.firstOrNull { it.isCompanion }?.funSpecs ?: emptyList()
         return kProp.getTypeSpec().funSpecs.plus(companionSpecs)
             .asSequence()
             .map { pairWithJavaMethod(it, jProp) }
@@ -79,7 +80,8 @@ internal class MethodGenerator @Inject constructor() {
      * @return the list of function specs that will be generated
      */
     fun generateGetters(jProp: JavaProperties, kProp: KotlinProperties): List<FunSpec> {
-        val companionSpecs = kProp.getTypeSpec().typeSpecs.first { it.isCompanion }.funSpecs
+        val companionSpecs =
+            kProp.getTypeSpec().typeSpecs.firstOrNull { it.isCompanion }?.funSpecs ?: emptyList()
         return kProp.getTypeSpec().funSpecs.plus(companionSpecs)
             .asSequence()
             .map { pairWithJavaMethod(it, jProp) }
@@ -115,7 +117,7 @@ internal class MethodGenerator @Inject constructor() {
     ): Pair<FunSpec, Element> {
         val enclosedElements =
             jProp.getElement().enclosedElements.filter { it.kind == ElementKind.CLASS }
-                .flatMap { it.enclosedElements.filter { it.kind == ElementKind.METHOD } }
+                .flatMap { classes -> classes.enclosedElements.filter { it.kind == ElementKind.METHOD } }
         val jFun =
             jProp.getMethods().plus(enclosedElements).firstOrNull { it.simpleName.toString() == funSpec.name }
                 ?: throw ProcessorException(
