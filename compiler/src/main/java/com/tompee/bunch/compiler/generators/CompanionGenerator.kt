@@ -22,7 +22,6 @@ internal class CompanionGenerator @Inject constructor(private val messager: Mess
             .addFunction(createParcelableSetter())
             .addFunction(createParcelableListSetter())
             .addFunction(createSerializableSetter())
-//            .addFunctions(createGetters())
             .build()
     }
 
@@ -132,17 +131,5 @@ internal class CompanionGenerator @Inject constructor(private val messager: Mess
             .addParameter("value", SERIALIZABLE)
             .addStatement("putSerializable(tag, value)".wrapProof())
             .build()
-    }
-
-    private fun createGetters(): List<FunSpec> {
-        return typeMap.map {
-            FunSpec.builder("get${it.value}")
-                .addModifiers(KModifier.PRIVATE)
-                .receiver(BUNDLE)
-                .addParameter("tag", STRING)
-                .returns(it.key.copy(true))
-                .addStatement("return get${it.value}(tag)".wrapProof())
-                .build()
-        }
     }
 }

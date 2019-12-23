@@ -14,12 +14,48 @@ import javax.lang.model.element.Element
 @KotlinPoetMetadataPreview
 internal class MethodGenerator @Inject constructor() {
 
+    companion object {
+
+        private val primitiveSet = setOf(
+            BOOLEAN,
+            BOOLEAN_ARRAY,
+            BUNDLE,
+            BYTE,
+            BYTE_ARRAY,
+            CHAR,
+            CHAR_ARRAY,
+            CHAR_SEQUENCE,
+            CHAR_SEQUENCE_ARRAY,
+            DOUBLE,
+            DOUBLE_ARRAY,
+            FLOAT,
+            FLOAT_ARRAY,
+            INT,
+            INT_ARRAY,
+            LONG,
+            LONG_ARRAY,
+            SHORT,
+            SHORT_ARRAY,
+            STRING,
+            STRING_ARRAY
+        )
+    }
+
     fun generateSetters(jProp: JavaProperties, kProp: KotlinProperties): List<FunSpec> {
         return kProp.getTypeSpec().funSpecs
             .asSequence()
-            .map { funSpec -> pairWithJavaMethod(funSpec, jProp) }
+            .map { pairWithJavaMethod(it, jProp) }
             .filter { JavaProperties.getItemAnnotation(it.second) != null }
-            .flatMap { generateSequence(it.first, it.second, jProp.getTargetTypeName()) }
+            .flatMap { generateSetterSequence(it.first, it.second, jProp.getTargetTypeName()) }
+            .toList()
+    }
+
+    fun generateGetters(jProp: JavaProperties, kProp: KotlinProperties): List<FunSpec> {
+        return kProp.getTypeSpec().funSpecs
+            .asSequence()
+            .map { pairWithJavaMethod(it, jProp) }
+            .filter { JavaProperties.getItemAnnotation(it.second) != null }
+            .flatMap { generateGetterSequence(it.first, it.second) }
             .toList()
     }
 
@@ -39,7 +75,7 @@ internal class MethodGenerator @Inject constructor() {
         return funSpec to jFun
     }
 
-    private fun generateSequence(
+    private fun generateSetterSequence(
         funSpec: FunSpec,
         element: Element,
         name: TypeName
@@ -55,7 +91,7 @@ internal class MethodGenerator @Inject constructor() {
 
         return prefixes.asSequence().map {
             val functionName = "$it${paramName.capitalize()}"
-            val statement = generateStatement(tag, funSpec, type, paramName, element)
+            val statement = generateSetReturnStatement(tag, funSpec, type, paramName, element)
             FunSpec.builder(functionName)
                 .addParameter(
                     ParameterSpec(
@@ -72,7 +108,7 @@ internal class MethodGenerator @Inject constructor() {
         }
     }
 
-    private fun generateStatement(
+    private fun generateSetReturnStatement(
         tag: String, funSpec: FunSpec, type: Type, param: String, element: Element
     ): String {
         return when {
@@ -90,6 +126,75 @@ internal class MethodGenerator @Inject constructor() {
             }
             type.isSerializable() -> {
                 "return apply { bundle.insertSerializable(\"$tag\", $param)}".wrapProof()
+            }
+            else -> throw ProcessorException(element, "Input type is not supported")
+        }
+    }
+
+    private fun generateGetterSequence(
+        funSpec: FunSpec,
+        element: Element
+    ): Sequence<FunSpec> {
+        val annotation = JavaProperties.getItemAnnotation(element)!!
+        val paramName = if (annotation.name.isEmpty()) funSpec.name else annotation.name
+        val prefixes =
+            if (annotation.getters.isEmpty()) arrayOf("get") else annotation.getters
+        val tag = if (annotation.tag.isEmpty()) "tag_${funSpec.name}" else annotation.tag
+        val method = element as Symbol.MethodSymbol
+        val type = (method.type as? Type.MethodType)?.restype
+            ?: throw ProcessorException(element, "Input type not supported")
+
+        return prefixes.asSequence().map {
+            val functionName = "$it${paramName.capitalize()}"
+            val (statement, returnType) = generateGetReturnStatement(
+                tag,
+                funSpec,
+                type,
+                element
+            )
+            FunSpec.builder(functionName)
+                .returns(returnType)
+                .addStatement(statement)
+                .build()
+        }
+    }
+
+    private fun generateGetReturnStatement(
+        tag: String, funSpec: FunSpec, type: Type, element: Element
+    ): Pair<String, TypeName> {
+        return when {
+            // TODO: Handle default values
+            funSpec.returnType in defaultValueMap.keys -> {
+                val getterName =
+                    defaultValueMap.entries.first { it.key == funSpec.returnType }.value
+                "return bundle.get$getterName(\"$tag\")".wrapProof() to funSpec.returnType!!
+            }
+            funSpec.returnType in nonDefaultValueMap.keys -> {
+                // TODO: Handle default values
+                val getterName =
+                    nonDefaultValueMap.entries.first { it.key == funSpec.returnType }.value
+                "return bundle.get$getterName(\"$tag\")".wrapProof() to
+                        funSpec.returnType!!.copy(true)
+            }
+            type.isParcelableList() -> {
+                // TODO: Handle default values
+                "return bundle.getParcelableArrayList(\"$tag\")".wrapProof() to
+                        funSpec.returnType!!.copy(true)
+            }
+            type.isEnum() -> {
+                // TODO: Handle default values
+                "return bundle.getString(\"$tag\")?.let(${funSpec.returnType}::valueOf)".wrapProof() to
+                        funSpec.returnType!!.copy(true)
+            }
+            type.isParcelable() -> {
+                // TODO: Handle default values
+                "return bundle.getParcelable(\"$tag\")".wrapProof() to
+                        funSpec.returnType!!.copy(true)
+            }
+            type.isSerializable() -> {
+                // TODO: Handle default values
+                "return bundle.getSerializable(\"$tag\") as? ${funSpec.returnType}".wrapProof() to
+                        funSpec.returnType!!.copy(true)
             }
             else -> throw ProcessorException(element, "Input type is not supported")
         }

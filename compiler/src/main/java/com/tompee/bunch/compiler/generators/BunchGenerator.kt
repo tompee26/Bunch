@@ -47,6 +47,7 @@ internal class BunchGenerator @AssistedInject constructor(
             )
             .addType(companionGenerator.generate(javaProperties, kotlinProperties))
             .addFunctions(methodGenerator.generateSetters(javaProperties, kotlinProperties))
+            .addFunctions(methodGenerator.generateGetters(javaProperties, kotlinProperties))
             .addFunction(methodGenerator.generateCollector())
             .build()
 

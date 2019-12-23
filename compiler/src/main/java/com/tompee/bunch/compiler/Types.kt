@@ -13,55 +13,40 @@ internal val SERIALIZABLE = ClassName("java.io", "Serializable")
 internal val JAVA_LIST = ClassName("java.util", "List")
 internal val JAVA_ENUM = ClassName("java.lang", "Enum")
 
-internal val typeMap = mapOf(
-//    BINDER to "Binder",
-    BOOLEAN to "Boolean",
-    BOOLEAN_ARRAY to "BooleanArray",
-    BUNDLE to "Bundle",
-    BYTE to "Byte",
-    BYTE_ARRAY to "ByteArray",
-    CHAR to "Char",
-    CHAR_ARRAY to "CharArray",
-    CHAR_SEQUENCE to "CharSequence",
-    CHAR_SEQUENCE_ARRAY to "CharSequenceArray",
-    DOUBLE to "Double",
-    DOUBLE_ARRAY to "DoubleArray",
-    FLOAT to "Float",
-    FLOAT_ARRAY to "FloatArray",
-    INT to "Int",
-    INT_ARRAY to "IntArray",
-    LONG to "Long",
-    LONG_ARRAY to "LongArray",
-    PARCELABLE to "Parcelable",
-    SERIALIZABLE to "Serializable",
+internal val defaultValueMap = mapOf(
     SHORT to "Short",
-    SHORT_ARRAY to "ShortArray",
-    STRING to "String",
-    STRING_ARRAY to "StringArray"
-    // TODO: Size
-    // TODO: SizeF
+    LONG to "Long",
+    INT to "Int",
+    FLOAT to "Float",
+    DOUBLE to "Double",
+    CHAR to "Char",
+    BYTE to "Byte",
+    BOOLEAN to "Boolean"
 )
 
-internal val primitiveSet = setOf(
-    BOOLEAN,
-    BOOLEAN_ARRAY,
-    BUNDLE,
-    BYTE,
-    BYTE_ARRAY,
-    CHAR,
-    CHAR_ARRAY,
-    CHAR_SEQUENCE,
-    CHAR_SEQUENCE_ARRAY,
-    DOUBLE,
-    DOUBLE_ARRAY,
-    FLOAT,
-    FLOAT_ARRAY,
-    INT,
-    INT_ARRAY,
-    LONG,
-    LONG_ARRAY,
-    SHORT,
-    SHORT_ARRAY,
-    STRING,
-    STRING_ARRAY
+internal val nonDefaultValueMap = mapOf(
+    STRING to "String",
+    STRING_ARRAY to "StringArray",
+    SHORT_ARRAY to "ShortArray",
+    LONG_ARRAY to "LongArray",
+    INT_ARRAY to "IntArray",
+    FLOAT_ARRAY to "FloatArray",
+    DOUBLE_ARRAY to "DoubleArray",
+    CHAR_SEQUENCE_ARRAY to "CharSequenceArray",
+    CHAR_SEQUENCE to "CharSequence",
+    CHAR_ARRAY to "CharArray",
+    BYTE_ARRAY to "ByteArray",
+    BUNDLE to "Bundle",
+    BOOLEAN_ARRAY to "BooleanArray"
 )
+
+internal val typeMap = mutableMapOf<TypeName, String>(
+    // TODO: Binder
+    PARCELABLE to "Parcelable",
+    SERIALIZABLE to "Serializable"
+    // TODO: Size
+    // TODO: SizeF
+).apply {
+    putAll(defaultValueMap)
+    putAll(nonDefaultValueMap)
+}
