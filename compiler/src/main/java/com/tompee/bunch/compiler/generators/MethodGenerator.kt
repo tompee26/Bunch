@@ -53,11 +53,12 @@ internal class MethodGenerator @Inject constructor() {
     }
 
     fun generateGetters(jProp: JavaProperties, kProp: KotlinProperties): List<FunSpec> {
-        return kProp.getTypeSpec().funSpecs
+        val companionSpecs = kProp.getTypeSpec().typeSpecs.first { it.isCompanion }.funSpecs
+        return kProp.getTypeSpec().funSpecs.plus(companionSpecs)
             .asSequence()
             .map { pairWithJavaMethod(it, jProp) }
             .filter { JavaProperties.getItemAnnotation(it.second) != null }
-            .flatMap { generateGetterSequence(it.first, it.second) }
+            .flatMap { generateGetterSequence(jProp.getElementName(), it.first, it.second) }
             .toList()
     }
 
@@ -141,6 +142,7 @@ internal class MethodGenerator @Inject constructor() {
     }
 
     private fun generateGetterSequence(
+        elementName: TypeName,
         funSpec: FunSpec,
         element: Element
     ): Sequence<FunSpec> {
@@ -159,7 +161,8 @@ internal class MethodGenerator @Inject constructor() {
                 tag,
                 funSpec,
                 type,
-                element
+                element,
+                elementName
             )
             FunSpec.builder(functionName)
                 .returns(returnType)
@@ -169,41 +172,81 @@ internal class MethodGenerator @Inject constructor() {
     }
 
     private fun generateGetReturnStatement(
-        tag: String, funSpec: FunSpec, type: Type, element: Element
+        tag: String,
+        funSpec: FunSpec,
+        type: Type,
+        element: Element,
+        sourceType: TypeName
     ): Pair<String, TypeName> {
         return when {
-            // TODO: Handle default values
             funSpec.returnType in defaultValueMap.keys -> {
                 val getterName =
                     defaultValueMap.entries.first { it.key == funSpec.returnType }.value
-                "return bundle.get$getterName(\"$tag\")".wrapProof() to funSpec.returnType!!
+                if (funSpec.modifiers.any { it == KModifier.ABSTRACT }) {
+                    "return bundle.get$getterName(\"$tag\")".wrapProof() to funSpec.returnType!!
+                } else {
+                    "return bundle.get$getterName(\"$tag\", ${sourceType}.${funSpec.name}())".wrapProof() to
+                            funSpec.returnType!!
+                }
             }
-            funSpec.returnType in nonDefaultValueMap.keys -> {
+            funSpec.returnType in nullableDefaultValueMap.keys -> {
                 // TODO: Handle default values
                 val getterName =
+                    nullableDefaultValueMap.entries.first { it.key == funSpec.returnType }.value
+                if (funSpec.modifiers.any { it == KModifier.ABSTRACT }) {
+                    "return bundle.get$getterName(\"$tag\")".wrapProof() to
+                            funSpec.returnType!!.copy(true)
+                } else {
+                    "return bundle.get$getterName(\"$tag\", ${sourceType}.${funSpec.name}())".wrapProof() to
+                            funSpec.returnType!!.copy(false)
+                }
+            }
+            funSpec.returnType in nonDefaultValueMap.keys -> {
+                val getterName =
                     nonDefaultValueMap.entries.first { it.key == funSpec.returnType }.value
-                "return bundle.get$getterName(\"$tag\")".wrapProof() to
-                        funSpec.returnType!!.copy(true)
+                if (funSpec.modifiers.any { it == KModifier.ABSTRACT }) {
+                    "return bundle.get$getterName(\"$tag\")".wrapProof() to
+                            funSpec.returnType!!.copy(true)
+                } else {
+                    "return bundle.get$getterName(\"$tag\") ?: ${sourceType}.${funSpec.name}()".wrapProof() to
+                            funSpec.returnType!!.copy(false)
+                }
             }
             type.isParcelableList() -> {
-                // TODO: Handle default values
-                "return bundle.getParcelableArrayList(\"$tag\")".wrapProof() to
-                        funSpec.returnType!!.copy(true)
+                if (funSpec.modifiers.any { it == KModifier.ABSTRACT }) {
+                    "return bundle.getParcelableArrayList(\"$tag\")".wrapProof() to
+                            funSpec.returnType!!.copy(true)
+                } else {
+                    "return bundle.getParcelableArrayList(\"$tag\") ?: ${sourceType}.${funSpec.name}()".wrapProof() to
+                            funSpec.returnType!!.copy(false)
+                }
             }
             type.isEnum() -> {
-                // TODO: Handle default values
-                "return bundle.getString(\"$tag\")?.let(${funSpec.returnType}::valueOf)".wrapProof() to
-                        funSpec.returnType!!.copy(true)
+                if (funSpec.modifiers.any { it == KModifier.ABSTRACT }) {
+                    "return bundle.getString(\"$tag\")?.let(${funSpec.returnType}::valueOf)".wrapProof() to
+                            funSpec.returnType!!.copy(true)
+                } else {
+                    "return bundle.getString(\"$tag\")?.let(${funSpec.returnType}::valueOf) ?: ${sourceType}.${funSpec.name}()".wrapProof() to
+                            funSpec.returnType!!.copy(false)
+                }
             }
             type.isParcelable() -> {
-                // TODO: Handle default values
-                "return bundle.getParcelable(\"$tag\")".wrapProof() to
-                        funSpec.returnType!!.copy(true)
+                if (funSpec.modifiers.any { it == KModifier.ABSTRACT }) {
+                    "return bundle.getParcelable(\"$tag\")".wrapProof() to
+                            funSpec.returnType!!.copy(true)
+                } else {
+                    "return bundle.getParcelable(\"$tag\") ?: ${sourceType}.${funSpec.name}()".wrapProof() to
+                            funSpec.returnType!!.copy(false)
+                }
             }
             type.isSerializable() -> {
-                // TODO: Handle default values
-                "return bundle.getSerializable(\"$tag\") as? ${funSpec.returnType}".wrapProof() to
-                        funSpec.returnType!!.copy(true)
+                if (funSpec.modifiers.any { it == KModifier.ABSTRACT }) {
+                    "return bundle.getSerializable(\"$tag\") as? ${funSpec.returnType}".wrapProof() to
+                            funSpec.returnType!!.copy(true)
+                } else {
+                    "return bundle.getSerializable(\"$tag\") as? ${funSpec.returnType} ?: ${sourceType}.${funSpec.name}()".wrapProof() to
+                            funSpec.returnType!!.copy(false)
+                }
             }
             else -> throw ProcessorException(element, "Input type is not supported")
         }

@@ -3,6 +3,7 @@ package com.tompee.bunch.compiler.properties
 import com.squareup.inject.assisted.Assisted
 import com.squareup.inject.assisted.AssistedInject
 import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.asClassName
 import com.tompee.bunch.annotation.Bunch
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.Element
@@ -33,6 +34,11 @@ internal class JavaProperties @AssistedInject constructor(
      * Returns the underlying type element
      */
     fun getElement(): TypeElement = typeElement
+
+    /**
+     * Returns the underlying type element name
+     */
+    fun getElementName(): ClassName = typeElement.asClassName()
 
     /**
      * Returns the [Bunch] annotation instance tied to the type element

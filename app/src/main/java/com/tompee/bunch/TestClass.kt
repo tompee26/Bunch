@@ -22,8 +22,84 @@ enum class MyEnum {
 internal abstract class TestClass {
 
     companion object {
+
         @Bunch.Item
-        fun getMyNumber(): Int = 2
+        fun booleanWithDefault(): Boolean = false
+
+        @Bunch.Item
+        fun booleanArrayWithDefault(): BooleanArray = booleanArrayOf()
+
+        @Bunch.Item
+        fun bundleWithDefault(): Bundle = Bundle.EMPTY
+
+        @Bunch.Item
+        fun byteWithDefault(): Byte = 1
+
+        @Bunch.Item
+        fun byteArrayWithDefault(): ByteArray = byteArrayOf()
+
+        @Bunch.Item
+        fun charWithDefault(): Char = 'a'
+
+        @Bunch.Item
+        fun charArrayWithDefault(): CharArray = charArrayOf()
+
+        @Bunch.Item
+        fun charSequenceWithDefault(): CharSequence = "abs"
+
+        @Bunch.Item
+        fun charSequenceArrayWithDefault(): Array<CharSequence> = arrayOf()
+
+        @Bunch.Item
+        fun doubleWithDefault(): Double = 0.0
+
+        @Bunch.Item
+        fun doubleArrayWithDefault(): DoubleArray = doubleArrayOf()
+
+        @Bunch.Item
+        fun floatWithDefault(): Float = 0.0f
+
+        @Bunch.Item
+        fun floatArrayWithDefault(): FloatArray = floatArrayOf()
+
+        @Bunch.Item
+        fun indexWithDefault(): Int = -1
+
+        @Bunch.Item
+        fun intWithDefault(): Int = 12
+
+        @Bunch.Item
+        fun intArrayWithDefault(): IntArray = intArrayOf()
+
+        @Bunch.Item
+        fun longWithDefault(): Long = 20L
+
+        @Bunch.Item
+        fun longArrayWithDefault(): LongArray = longArrayOf()
+
+        @Bunch.Item
+        fun shortWithDefault(): Short = 0
+
+        @Bunch.Item
+        fun shortArrayWithDefault(): ShortArray = shortArrayOf()
+
+        @Bunch.Item
+        fun stringWithDefault(): String = ""
+
+        @Bunch.Item
+        fun stringArrayWithDefault(): Array<String> = arrayOf()
+
+        @Bunch.Item
+        fun parcelableListWithDefault(): List<ChildParcelable> = listOf()
+
+        @Bunch.Item
+        fun myEnumWithDefault(): MyEnum = MyEnum.ITEM_1
+
+        @Bunch.Item
+        fun parcelableWithDefault(): ChildParcelable = ChildParcelable()
+
+        @Bunch.Item
+        fun serializableWithDefault(): MySerializable = MySerializable()
     }
 
     @Bunch.Item

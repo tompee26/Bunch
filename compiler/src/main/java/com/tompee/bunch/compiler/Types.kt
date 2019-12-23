@@ -24,8 +24,11 @@ internal val defaultValueMap = mapOf(
     BOOLEAN to "Boolean"
 )
 
+internal val nullableDefaultValueMap = mapOf(
+    STRING to "String"
+)
+
 internal val nonDefaultValueMap = mapOf(
-    STRING to "String",
     STRING_ARRAY to "StringArray",
     SHORT_ARRAY to "ShortArray",
     LONG_ARRAY to "LongArray",
@@ -48,5 +51,6 @@ internal val typeMap = mutableMapOf<TypeName, String>(
     // TODO: SizeF
 ).apply {
     putAll(defaultValueMap)
+    putAll(nullableDefaultValueMap)
     putAll(nonDefaultValueMap)
 }
