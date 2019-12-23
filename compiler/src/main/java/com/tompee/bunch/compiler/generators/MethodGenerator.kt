@@ -12,11 +12,23 @@ import javax.inject.Inject
 import javax.lang.model.element.Element
 import javax.lang.model.element.ElementKind
 
+/**
+ * Generates the instance methods of the Bunch. The methods include setter methods, nullable getter methods,
+ * non-nullable getter methods, throw getter methods and the collector method
+ */
 @KotlinPoetMetadataPreview
 internal class MethodGenerator @Inject constructor() {
 
     companion object {
 
+        /**
+         * Default item not found exception
+         */
+        private const val THROW_STATEMENT = "throw IllegalStateException(\"Item not found\")"
+
+        /**
+         * These are the types with that is supported by bundle directly
+         */
         private val primitiveSet = setOf(
             BOOLEAN,
             BOOLEAN_ARRAY,
@@ -42,6 +54,13 @@ internal class MethodGenerator @Inject constructor() {
         )
     }
 
+    /**
+     * Generates the instance setter methods. It checks for both source class functions and companion object methods
+     *
+     * @param jProp Java properties
+     * @param kProp Kotlin properties
+     * @return the list of function specs that will be generated
+     */
     fun generateSetters(jProp: JavaProperties, kProp: KotlinProperties): List<FunSpec> {
         val companionSpecs = kProp.getTypeSpec().typeSpecs.first { it.isCompanion }.funSpecs
         return kProp.getTypeSpec().funSpecs.plus(companionSpecs)
@@ -52,6 +71,13 @@ internal class MethodGenerator @Inject constructor() {
             .toList()
     }
 
+    /**
+     * Generates the instance getter methods. It checks for both source class functions and companion object methods
+     *
+     * @param jProp Java properties
+     * @param kProp Kotlin properties
+     * @return the list of function specs that will be generated
+     */
     fun generateGetters(jProp: JavaProperties, kProp: KotlinProperties): List<FunSpec> {
         val companionSpecs = kProp.getTypeSpec().typeSpecs.first { it.isCompanion }.funSpecs
         return kProp.getTypeSpec().funSpecs.plus(companionSpecs)
@@ -62,6 +88,11 @@ internal class MethodGenerator @Inject constructor() {
             .toList()
     }
 
+    /**
+     * Generates the collector method. The collector method exposes the internal bundle.
+     *
+     * @return the collector method function spec
+     */
     fun generateCollector(): FunSpec {
         return FunSpec.builder("collect")
             .returns(BUNDLE)
@@ -69,6 +100,15 @@ internal class MethodGenerator @Inject constructor() {
             .build()
     }
 
+    /**
+     * Pairs a kotlin method in the class and/or the companion object with its Java symbol counterpart.
+     * Both are necessary because kotlin types are easier to work with in terms of type names and
+     * Java symbols are necessary for type hierarchy checking.
+     *
+     * @param funSpec kotlin function spec
+     * @param jProp Java property
+     * @return the pair of kotlin and java method
+     */
     private fun pairWithJavaMethod(
         funSpec: FunSpec,
         jProp: JavaProperties
@@ -85,6 +125,14 @@ internal class MethodGenerator @Inject constructor() {
         return funSpec to jFun
     }
 
+    /**
+     * Generates the setter function spec sequence. This takes into consideration the custom tags
+     * and setter functions.
+     *
+     * @param funSpec kotlin function spec
+     * @param element the method element (ElementKind.METHOD)
+     * @param name the output class name
+     */
     private fun generateSetterSequence(
         funSpec: FunSpec,
         element: Element,
@@ -118,6 +166,15 @@ internal class MethodGenerator @Inject constructor() {
         }
     }
 
+    /**
+     * Generates the different assignment statement of each type
+     *
+     * @param tag the actual bundle tag (already considered custom tag)
+     * @param funSpec kotlin function spec
+     * @param type the parameter type
+     * @param param the actual parameter name (already considered custom names)
+     * @param element the enclosing element for debugging purposes (ElementKind.METHOD)
+     */
     private fun generateSetReturnStatement(
         tag: String, funSpec: FunSpec, type: Type, param: String, element: Element
     ): String {
@@ -141,8 +198,16 @@ internal class MethodGenerator @Inject constructor() {
         }
     }
 
+    /**
+     * Generates the getter function spec sequence. This takes into consideration the custom tags
+     * and getter functions.
+     *
+     * @param sourceName the source class name. This is for invoking default value methods
+     * @param funSpec kotlin function spec
+     * @param element the method element (ElementKind.METHOD)
+     */
     private fun generateGetterSequence(
-        elementName: TypeName,
+        sourceName: TypeName,
         funSpec: FunSpec,
         element: Element
     ): Sequence<FunSpec> {
@@ -155,103 +220,308 @@ internal class MethodGenerator @Inject constructor() {
         val type = (method.type as? Type.MethodType)?.restype
             ?: throw ProcessorException(element, "Input type not supported")
 
-        return prefixes.asSequence().map {
-            val functionName = "$it${paramName.capitalize()}"
-            val (statement, returnType) = generateGetReturnStatement(
+        return prefixes.asSequence().flatMap {
+            generateGetterFuncSpecs(
+                "$it${paramName.capitalize()}",
                 tag,
                 funSpec,
                 type,
-                element,
-                elementName
+                sourceName,
+                element
             )
-            FunSpec.builder(functionName)
-                .returns(returnType)
-                .addStatement(statement)
-                .build()
         }
     }
 
-    private fun generateGetReturnStatement(
+    /**
+     * Generates the different getter function specs. Getter methods can be default, nullable,
+     * non-nullable or throw methods
+     *
+     * @param functionName the getter function name (already considered custom names)
+     * @param tag the actual bundle tag (already considered custom tag)
+     * @param funSpec kotlin function spec
+     * @param type the parameter type
+     * @param sourceName the source class name. This is for invoking default value methods
+     * @param element the enclosing element for debugging purposes (ElementKind.METHOD)
+     */
+    private fun generateGetterFuncSpecs(
+        functionName: String,
         tag: String,
         funSpec: FunSpec,
         type: Type,
-        element: Element,
-        sourceType: TypeName
-    ): Pair<String, TypeName> {
+        sourceName: TypeName,
+        element: Element
+    ): Sequence<FunSpec> {
         return when {
-            funSpec.returnType in defaultValueMap.keys -> {
-                val getterName =
-                    defaultValueMap.entries.first { it.key == funSpec.returnType }.value
-                if (funSpec.modifiers.any { it == KModifier.ABSTRACT }) {
-                    "return bundle.get$getterName(\"$tag\")".wrapProof() to funSpec.returnType!!
-                } else {
-                    "return bundle.get$getterName(\"$tag\", ${sourceType}.${funSpec.name}())".wrapProof() to
-                            funSpec.returnType!!
-                }
-            }
-            funSpec.returnType in nullableDefaultValueMap.keys -> {
-                // TODO: Handle default values
-                val getterName =
-                    nullableDefaultValueMap.entries.first { it.key == funSpec.returnType }.value
-                if (funSpec.modifiers.any { it == KModifier.ABSTRACT }) {
-                    "return bundle.get$getterName(\"$tag\")".wrapProof() to
-                            funSpec.returnType!!.copy(true)
-                } else {
-                    "return bundle.get$getterName(\"$tag\", ${sourceType}.${funSpec.name}())".wrapProof() to
-                            funSpec.returnType!!.copy(false)
-                }
-            }
-            funSpec.returnType in nonDefaultValueMap.keys -> {
-                val getterName =
-                    nonDefaultValueMap.entries.first { it.key == funSpec.returnType }.value
-                if (funSpec.modifiers.any { it == KModifier.ABSTRACT }) {
-                    "return bundle.get$getterName(\"$tag\")".wrapProof() to
-                            funSpec.returnType!!.copy(true)
-                } else {
-                    "return bundle.get$getterName(\"$tag\") ?: ${sourceType}.${funSpec.name}()".wrapProof() to
-                            funSpec.returnType!!.copy(false)
-                }
-            }
-            type.isParcelableList() -> {
-                if (funSpec.modifiers.any { it == KModifier.ABSTRACT }) {
-                    "return bundle.getParcelableArrayList(\"$tag\")".wrapProof() to
-                            funSpec.returnType!!.copy(true)
-                } else {
-                    "return bundle.getParcelableArrayList(\"$tag\") ?: ${sourceType}.${funSpec.name}()".wrapProof() to
-                            funSpec.returnType!!.copy(false)
-                }
-            }
-            type.isEnum() -> {
-                if (funSpec.modifiers.any { it == KModifier.ABSTRACT }) {
-                    "return bundle.getString(\"$tag\")?.let(${funSpec.returnType}::valueOf)".wrapProof() to
-                            funSpec.returnType!!.copy(true)
-                } else {
-                    "return bundle.getString(\"$tag\")?.let(${funSpec.returnType}::valueOf) ?: ${sourceType}.${funSpec.name}()".wrapProof() to
-                            funSpec.returnType!!.copy(false)
-                }
-            }
-            type.isParcelable() -> {
-                if (funSpec.modifiers.any { it == KModifier.ABSTRACT }) {
-                    "return bundle.getParcelable(\"$tag\")".wrapProof() to
-                            funSpec.returnType!!.copy(true)
-                } else {
-                    "return bundle.getParcelable(\"$tag\") ?: ${sourceType}.${funSpec.name}()".wrapProof() to
-                            funSpec.returnType!!.copy(false)
-                }
-            }
-            type.isSerializable() -> {
-                if (funSpec.modifiers.any { it == KModifier.ABSTRACT }) {
-                    "return bundle.getSerializable(\"$tag\") as? ${funSpec.returnType}".wrapProof() to
-                            funSpec.returnType!!.copy(true)
-                } else {
-                    "return bundle.getSerializable(\"$tag\") as? ${funSpec.returnType} ?: ${sourceType}.${funSpec.name}()".wrapProof() to
-                            funSpec.returnType!!.copy(false)
-                }
-            }
+            funSpec.returnType in defaultValueMap.keys ->
+                createDefaultGetters(functionName, tag, funSpec, sourceName)
+            funSpec.returnType in nullableDefaultValueMap.keys ->
+                createNullableDefaultGetters(functionName, tag, funSpec, sourceName)
+            funSpec.returnType in nonDefaultValueMap.keys ->
+                createNonDefaultGetters(functionName, tag, funSpec, sourceName)
+            type.isParcelableList() ->
+                createParcelableArrayListGetters(functionName, tag, funSpec, sourceName)
+            type.isEnum() ->
+                createEnumGetters(functionName, tag, funSpec, sourceName)
+            type.isParcelable() ->
+                createParcelableGetters(functionName, tag, funSpec, sourceName)
+            type.isSerializable() ->
+                createSerializableGetters(functionName, tag, funSpec, sourceName)
             else -> throw ProcessorException(element, "Input type is not supported")
         }
     }
 
+    /**
+     * Creates the default value getters. This does not have throw getters
+     *
+     * @param functionName the getter function name (already considered custom names)
+     * @param tag the actual bundle tag (already considered custom tag)
+     * @param funSpec kotlin function spec
+     * @param sourceName the source class name. This is for invoking default value methods
+     */
+    private fun createDefaultGetters(
+        functionName: String,
+        tag: String,
+        funSpec: FunSpec,
+        sourceName: TypeName
+    ): Sequence<FunSpec> {
+        val getterName =
+            defaultValueMap.entries.first { it.key == funSpec.returnType }.value
+        val defaultSpecs = if (funSpec.modifiers.any { it == KModifier.ABSTRACT }) {
+            FunSpec.builder(functionName)
+                .returns(funSpec.returnType!!)
+                .addStatement("return bundle.get$getterName(\"$tag\")".wrapProof())
+                .build()
+        } else {
+            FunSpec.builder(functionName)
+                .returns(funSpec.returnType!!)
+                .addStatement("return bundle.get$getterName(\"$tag\", ${sourceName}.${funSpec.name}())".wrapProof())
+                .build()
+        }
+        return sequenceOf(defaultSpecs)
+    }
+
+    /**
+     * Creates the nullable default value getters
+     *
+     * @param functionName the getter function name (already considered custom names)
+     * @param tag the actual bundle tag (already considered custom tag)
+     * @param funSpec kotlin function spec
+     * @param sourceName the source class name. This is for invoking default value methods
+     */
+    private fun createNullableDefaultGetters(
+        functionName: String,
+        tag: String,
+        funSpec: FunSpec,
+        sourceName: TypeName
+    ): Sequence<FunSpec> {
+        val getterName =
+            nullableDefaultValueMap.entries.first { it.key == funSpec.returnType }.value
+
+        return if (funSpec.modifiers.any { it == KModifier.ABSTRACT }) {
+            sequenceOf(
+                FunSpec.builder(functionName)
+                    .returns(funSpec.returnType!!.copy(true))
+                    .addStatement("return bundle.get$getterName(\"$tag\")".wrapProof())
+                    .build(),
+                FunSpec.builder("${functionName}OrThrow")
+                    .returns(funSpec.returnType!!.copy(false))
+                    .addStatement("return bundle.get$getterName(\"$tag\") ?: $THROW_STATEMENT".wrapProof())
+                    .build()
+            )
+        } else {
+            sequenceOf(
+                FunSpec.builder(functionName)
+                    .returns(funSpec.returnType!!.copy(false))
+                    .addStatement("return bundle.get$getterName(\"$tag\", ${sourceName}.${funSpec.name}())".wrapProof())
+                    .build()
+            )
+        }
+    }
+
+    /**
+     * Creates the non default value getters
+     *
+     * @param functionName the getter function name (already considered custom names)
+     * @param tag the actual bundle tag (already considered custom tag)
+     * @param funSpec kotlin function spec
+     * @param sourceName the source class name. This is for invoking default value methods
+     */
+    private fun createNonDefaultGetters(
+        functionName: String,
+        tag: String,
+        funSpec: FunSpec,
+        sourceName: TypeName
+    ): Sequence<FunSpec> {
+
+        val getterName =
+            nonDefaultValueMap.entries.first { it.key == funSpec.returnType }.value
+
+        return if (funSpec.modifiers.any { it == KModifier.ABSTRACT }) {
+            sequenceOf(
+                FunSpec.builder(functionName)
+                    .returns(funSpec.returnType!!.copy(true))
+                    .addStatement("return bundle.get$getterName(\"$tag\")".wrapProof())
+                    .build(),
+                FunSpec.builder("${functionName}OrThrow")
+                    .returns(funSpec.returnType!!.copy(false))
+                    .addStatement("return bundle.get$getterName(\"$tag\") ?: $THROW_STATEMENT".wrapProof())
+                    .build()
+            )
+        } else {
+            sequenceOf(
+                FunSpec.builder(functionName)
+                    .returns(funSpec.returnType!!.copy(false))
+                    .addStatement("return bundle.get$getterName(\"$tag\") ?: ${sourceName}.${funSpec.name}()".wrapProof())
+                    .build()
+            )
+        }
+    }
+
+    /**
+     * Creates the parcelable array list getters
+     *
+     * @param functionName the getter function name (already considered custom names)
+     * @param tag the actual bundle tag (already considered custom tag)
+     * @param funSpec kotlin function spec
+     * @param sourceName the source class name. This is for invoking default value methods
+     */
+    private fun createParcelableArrayListGetters(
+        functionName: String,
+        tag: String,
+        funSpec: FunSpec,
+        sourceName: TypeName
+    ): Sequence<FunSpec> {
+
+        return if (funSpec.modifiers.any { it == KModifier.ABSTRACT }) {
+            sequenceOf(
+                FunSpec.builder(functionName)
+                    .returns(funSpec.returnType!!.copy(true))
+                    .addStatement("return bundle.getParcelableArrayList(\"$tag\")".wrapProof())
+                    .build(),
+                FunSpec.builder("${functionName}OrThrow")
+                    .returns(funSpec.returnType!!.copy(false))
+                    .addStatement("return bundle.getParcelableArrayList(\"$tag\") ?: $THROW_STATEMENT".wrapProof())
+                    .build()
+            )
+        } else {
+            sequenceOf(
+                FunSpec.builder(functionName)
+                    .returns(funSpec.returnType!!.copy(false))
+                    .addStatement("return bundle.getParcelableArrayList(\"$tag\") ?: ${sourceName}.${funSpec.name}()".wrapProof().wrapProof())
+                    .build()
+            )
+        }
+    }
+
+    /**
+     * Creates the enum getters
+     *
+     * @param functionName the getter function name (already considered custom names)
+     * @param tag the actual bundle tag (already considered custom tag)
+     * @param funSpec kotlin function spec
+     * @param sourceName the source class name. This is for invoking default value methods
+     */
+    private fun createEnumGetters(
+        functionName: String,
+        tag: String,
+        funSpec: FunSpec,
+        sourceName: TypeName
+    ): Sequence<FunSpec> {
+        return if (funSpec.modifiers.any { it == KModifier.ABSTRACT }) {
+            sequenceOf(
+                FunSpec.builder(functionName)
+                    .returns(funSpec.returnType!!.copy(true))
+                    .addStatement("return bundle.getString(\"$tag\")?.let(${funSpec.returnType}::valueOf)".wrapProof())
+                    .build(),
+                FunSpec.builder("${functionName}OrThrow")
+                    .returns(funSpec.returnType!!.copy(false))
+                    .addStatement("return bundle.getString(\"$tag\")?.let(${funSpec.returnType}::valueOf) ?: $THROW_STATEMENT".wrapProof())
+                    .build()
+            )
+        } else {
+            sequenceOf(
+                FunSpec.builder(functionName)
+                    .returns(funSpec.returnType!!.copy(false))
+                    .addStatement("return bundle.getString(\"$tag\")?.let(${funSpec.returnType}::valueOf) ?: ${sourceName}.${funSpec.name}()".wrapProof())
+                    .build()
+            )
+        }
+    }
+
+    /**
+     * Creates the parcelable getters
+     *
+     * @param functionName the getter function name (already considered custom names)
+     * @param tag the actual bundle tag (already considered custom tag)
+     * @param funSpec kotlin function spec
+     * @param sourceName the source class name. This is for invoking default value methods
+     */
+    private fun createParcelableGetters(
+        functionName: String,
+        tag: String,
+        funSpec: FunSpec,
+        sourceName: TypeName
+    ): Sequence<FunSpec> {
+        return if (funSpec.modifiers.any { it == KModifier.ABSTRACT }) {
+            sequenceOf(
+                FunSpec.builder(functionName)
+                    .returns(funSpec.returnType!!.copy(true))
+                    .addStatement("return bundle.getParcelable(\"$tag\")".wrapProof())
+                    .build(),
+                FunSpec.builder("${functionName}OrThrow")
+                    .returns(funSpec.returnType!!.copy(false))
+                    .addStatement("return bundle.getParcelable(\"$tag\") ?: $THROW_STATEMENT".wrapProof())
+                    .build()
+            )
+        } else {
+            sequenceOf(
+                FunSpec.builder(functionName)
+                    .returns(funSpec.returnType!!.copy(false))
+                    .addStatement("return bundle.getParcelable(\"$tag\") ?: ${sourceName}.${funSpec.name}()".wrapProof())
+                    .build()
+            )
+        }
+    }
+
+    /**
+     * Creates the serializable getters
+     *
+     * @param functionName the getter function name (already considered custom names)
+     * @param tag the actual bundle tag (already considered custom tag)
+     * @param funSpec kotlin function spec
+     * @param sourceName the source class name. This is for invoking default value methods
+     */
+    private fun createSerializableGetters(
+        functionName: String,
+        tag: String,
+        funSpec: FunSpec,
+        sourceName: TypeName
+    ): Sequence<FunSpec> {
+
+        return if (funSpec.modifiers.any { it == KModifier.ABSTRACT }) {
+            sequenceOf(
+                FunSpec.builder(functionName)
+                    .returns(funSpec.returnType!!.copy(true))
+                    .addStatement("return bundle.getSerializable(\"$tag\") as? ${funSpec.returnType}".wrapProof())
+                    .build(),
+                FunSpec.builder("${functionName}OrThrow")
+                    .returns(funSpec.returnType!!.copy(false))
+                    .addStatement("return bundle.getSerializable(\"$tag\") as? ${funSpec.returnType} ?: $THROW_STATEMENT".wrapProof())
+                    .build()
+            )
+        } else {
+            sequenceOf(
+                FunSpec.builder(functionName)
+                    .returns(funSpec.returnType!!.copy(false))
+                    .addStatement("return bundle.getSerializable(\"$tag\") as? ${funSpec.returnType} ?: ${sourceName}.${funSpec.name}()".wrapProof())
+                    .build()
+            )
+        }
+    }
+
+    /**
+     * Checks if a type is an enum
+     */
     private fun Type.isEnum(): Boolean {
         val classType = this as? Type.ClassType ?: return false
         val superType = classType.supertype_field as? Type.ClassType ?: return false
@@ -259,6 +529,9 @@ internal class MethodGenerator @Inject constructor() {
         return name == JAVA_ENUM
     }
 
+    /**
+     * Checks if a type is a parcelable list
+     */
     private fun Type.isParcelableList(): Boolean {
         val classType = this as? Type.ClassType ?: return false
         val name = (classType.asTypeName() as? ParameterizedTypeName)?.rawType ?: return false
@@ -269,6 +542,9 @@ internal class MethodGenerator @Inject constructor() {
         return typeSet.any { it.asTypeName() == PARCELABLE }
     }
 
+    /**
+     * Checks if a type is parcelable
+     */
     private fun Type.isParcelable(): Boolean {
         val classType = this as? Type.ClassType ?: return false
         val typeSet = mutableSetOf<Type.ClassType>()
@@ -276,6 +552,9 @@ internal class MethodGenerator @Inject constructor() {
         return typeSet.any { it.asTypeName() == PARCELABLE }
     }
 
+    /**
+     * Checks if a type is serializable
+     */
     private fun Type.isSerializable(): Boolean {
         val classType = this as? Type.ClassType ?: return false
         val typeSet = mutableSetOf<Type.ClassType>()
@@ -283,6 +562,9 @@ internal class MethodGenerator @Inject constructor() {
         return typeSet.any { it.asTypeName() == SERIALIZABLE }
     }
 
+    /**
+     * Aggregates all super types of a single type
+     */
     private fun findAllTypes(set: MutableSet<Type.ClassType>, type: Type.ClassType) {
         set.add(type)
         type.interfaces_field
