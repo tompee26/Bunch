@@ -21,6 +21,11 @@ enum class MyEnum {
 @Bunch("Args")
 internal abstract class TestClass {
 
+    companion object {
+        @Bunch.Item
+        fun getMyNumber(): Int = 2
+    }
+
     @Bunch.Item
     abstract fun boolean1(): Boolean
 

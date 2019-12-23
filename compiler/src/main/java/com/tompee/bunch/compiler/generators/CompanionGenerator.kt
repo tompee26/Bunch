@@ -6,12 +6,12 @@ import com.tompee.bunch.compiler.*
 import com.tompee.bunch.compiler.extensions.wrapProof
 import com.tompee.bunch.compiler.properties.JavaProperties
 import com.tompee.bunch.compiler.properties.KotlinProperties
-import javax.annotation.processing.Messager
 import javax.inject.Inject
 import javax.lang.model.element.Element
+import javax.lang.model.element.ElementKind
 
 @KotlinPoetMetadataPreview
-internal class CompanionGenerator @Inject constructor(private val messager: Messager) {
+internal class CompanionGenerator @Inject constructor() {
 
     fun generate(jProp: JavaProperties, kProp: KotlinProperties): TypeSpec {
         return TypeSpec.companionObjectBuilder()
@@ -29,7 +29,8 @@ internal class CompanionGenerator @Inject constructor(private val messager: Mess
         jProp: JavaProperties,
         kProp: KotlinProperties
     ): List<FunSpec> {
-        return kProp.getTypeSpec().funSpecs
+        val companionSpecs = kProp.getTypeSpec().typeSpecs.first { it.isCompanion }.funSpecs
+        return kProp.getTypeSpec().funSpecs.plus(companionSpecs)
             .asSequence()
             .map { funSpec -> pairWithJavaMethod(funSpec, jProp) }
             .filter { JavaProperties.getItemAnnotation(it.second) != null }
@@ -41,8 +42,15 @@ internal class CompanionGenerator @Inject constructor(private val messager: Mess
         funSpec: FunSpec,
         jProp: JavaProperties
     ): Pair<FunSpec, Element> {
-        val jFun = jProp.getMethods().firstOrNull { it.simpleName.toString() == funSpec.name }
-            ?: throw ProcessorException(jProp.getElement(), "Some functions cannot be interpreted")
+        val enclosedElements =
+            jProp.getElement().enclosedElements.filter { it.kind == ElementKind.CLASS }
+                .flatMap { it.enclosedElements.filter { it.kind == ElementKind.METHOD } }
+        val jFun =
+            jProp.getMethods().plus(enclosedElements).firstOrNull { it.simpleName.toString() == funSpec.name }
+                ?: throw ProcessorException(
+                    jProp.getElement(),
+                    "Some functions cannot be interpreted"
+                )
         return funSpec to jFun
     }
 
