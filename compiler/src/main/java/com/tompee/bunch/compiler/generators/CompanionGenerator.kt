@@ -6,10 +6,12 @@ import com.tompee.bunch.compiler.*
 import com.tompee.bunch.compiler.extensions.wrapProof
 import com.tompee.bunch.compiler.properties.JavaProperties
 import com.tompee.bunch.compiler.properties.KotlinProperties
+import javax.annotation.processing.Messager
 import javax.inject.Inject
+import javax.lang.model.element.Element
 
 @KotlinPoetMetadataPreview
-internal class CompanionGenerator @Inject constructor() {
+internal class CompanionGenerator @Inject constructor(private val messager: Messager) {
 
     fun generate(jProp: JavaProperties, kProp: KotlinProperties): TypeSpec {
         return TypeSpec.companionObjectBuilder()
@@ -30,33 +32,44 @@ internal class CompanionGenerator @Inject constructor() {
     ): List<FunSpec> {
         return kProp.getTypeSpec().funSpecs
             .asSequence()
-            .map { funSpec ->
-                val jFun = jProp.getMethods().first { it.simpleName.toString() == funSpec.name }
-                funSpec to jFun
-            }
-            .mapNotNull {
-                val annotation = JavaProperties.getItemAnnotation(it.second)
-                if (annotation == null) null else it.first to annotation
-            }
-            .flatMap { pair ->
-                val (funSpec, annotation) = pair
-                val paramName = if (annotation.name.isEmpty()) funSpec.name else annotation.name
-                val prefixes =
-                    if (annotation.setters.isEmpty()) arrayOf("with") else annotation.setters
-                prefixes.asSequence().map {
-                    val functionName = "$it${paramName.capitalize()}"
-                    FunSpec.builder(functionName)
-                        .addParameter(
-                            ParameterSpec(
-                                paramName,
-                                funSpec.returnType ?: throw Throwable("Input type not supported")
-                            )
-                        )
-                        .returns(jProp.getTargetTypeName())
-                        .addStatement("return ${jProp.getTargetTypeName()}(Bundle()).$functionName($paramName)".wrapProof())
-                        .build()
-                }
-            }.toList()
+            .map { funSpec -> pairWithJavaMethod(funSpec, jProp) }
+            .filter { JavaProperties.getItemAnnotation(it.second) != null }
+            .flatMap { generateSequence(it.first, it.second, jProp.getTargetTypeName()) }
+            .toList()
+    }
+
+    private fun pairWithJavaMethod(
+        funSpec: FunSpec,
+        jProp: JavaProperties
+    ): Pair<FunSpec, Element> {
+        val jFun = jProp.getMethods().firstOrNull { it.simpleName.toString() == funSpec.name }
+            ?: throw Throwable("Some functions cannot be interpreted")
+        return funSpec to jFun
+    }
+
+    private fun generateSequence(
+        funSpec: FunSpec,
+        element: Element,
+        name: TypeName
+    ): Sequence<FunSpec> {
+        val annotation = JavaProperties.getItemAnnotation(element)!!
+        val paramName = if (annotation.name.isEmpty()) funSpec.name else annotation.name
+        val prefixes =
+            if (annotation.setters.isEmpty()) arrayOf("with") else annotation.setters
+
+        return prefixes.asSequence().map {
+            val functionName = "$it${paramName.capitalize()}"
+            FunSpec.builder(functionName)
+                .addParameter(
+                    ParameterSpec(
+                        paramName,
+                        funSpec.returnType ?: throw Throwable("Input type not supported")
+                    )
+                )
+                .returns(name)
+                .addStatement("return ${name}(Bundle()).$functionName($paramName)".wrapProof())
+                .build()
+        }
     }
 
     private fun createDuplicateFunction(): FunSpec {
