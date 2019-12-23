@@ -43,7 +43,7 @@ internal class CompanionGenerator @Inject constructor(private val messager: Mess
         jProp: JavaProperties
     ): Pair<FunSpec, Element> {
         val jFun = jProp.getMethods().firstOrNull { it.simpleName.toString() == funSpec.name }
-            ?: throw Throwable("Some functions cannot be interpreted")
+            ?: throw ProcessorException(jProp.getElement(), "Some functions cannot be interpreted")
         return funSpec to jFun
     }
 
@@ -63,7 +63,10 @@ internal class CompanionGenerator @Inject constructor(private val messager: Mess
                 .addParameter(
                     ParameterSpec(
                         paramName,
-                        funSpec.returnType ?: throw Throwable("Input type not supported")
+                        funSpec.returnType ?: throw ProcessorException(
+                            element,
+                            "Input type not supported"
+                        )
                     )
                 )
                 .returns(name)

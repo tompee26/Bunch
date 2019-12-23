@@ -43,8 +43,8 @@ internal class BunchProcessor : AbstractProcessor() {
         env?.getElementsAnnotatedWith(Bunch::class.java)?.forEach {
             try {
                 generatorFactory.create(it).generate()
-            } catch (e: Throwable) {
-                processingEnv.messager.printMessage(Diagnostic.Kind.ERROR, e.message, it)
+            } catch (e: ProcessorException) {
+                processingEnv.messager.printMessage(Diagnostic.Kind.ERROR, e.message, e.element)
             }
         }
         return true

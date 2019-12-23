@@ -21,8 +21,8 @@ enum class MyEnum {
 @Bunch("Args")
 internal abstract class TestClass {
 
-//    @Bunch.Item(name = "myIndex", setters = ["put", "add", "seasonWith"])
-//    abstract fun index(): Int
+    @Bunch.Item(name = "myIndex", setters = ["put", "add", "seasonWith"])
+    abstract fun index(): Int
 
     @Bunch.Item
     abstract fun boolean1(): Boolean
@@ -81,11 +81,11 @@ internal abstract class TestClass {
     @Bunch.Item
     abstract fun shortArray(): ShortArray
 
-//    @Bunch.Item
-//    abstract fun string1(): String
+    @Bunch.Item
+    abstract fun string1(): String
 
-//    @Bunch.Item
-//    abstract fun stringArray(): Array<String>
+    @Bunch.Item
+    abstract fun stringArray(): Array<String>
 
     @Bunch.Item("myChild", tag = "_of_war")
     abstract fun parcelable(): ChildParcelable

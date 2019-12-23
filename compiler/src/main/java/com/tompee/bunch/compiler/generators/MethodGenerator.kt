@@ -35,7 +35,7 @@ internal class MethodGenerator @Inject constructor() {
         jProp: JavaProperties
     ): Pair<FunSpec, Element> {
         val jFun = jProp.getMethods().firstOrNull { it.simpleName.toString() == funSpec.name }
-            ?: throw Throwable("Some functions cannot be interpreted")
+            ?: throw ProcessorException(jProp.getElement(), "Some functions cannot be interpreted")
         return funSpec to jFun
     }
 
@@ -51,16 +51,19 @@ internal class MethodGenerator @Inject constructor() {
         val tag = if (annotation.tag.isEmpty()) "tag_${funSpec.name}" else annotation.tag
         val method = element as Symbol.MethodSymbol
         val type = (method.type as? Type.MethodType)?.restype
-            ?: throw Throwable("Input type not supported")
+            ?: throw ProcessorException(element, "Input type not supported")
 
         return prefixes.asSequence().map {
             val functionName = "$it${paramName.capitalize()}"
-            val statement = generateStatement(tag, funSpec, type, paramName)
+            val statement = generateStatement(tag, funSpec, type, paramName, element)
             FunSpec.builder(functionName)
                 .addParameter(
                     ParameterSpec(
                         paramName,
-                        funSpec.returnType ?: throw Throwable("Input type not supported")
+                        funSpec.returnType ?: throw ProcessorException(
+                            element,
+                            "Input type not supported"
+                        )
                     )
                 )
                 .returns(name)
@@ -70,7 +73,7 @@ internal class MethodGenerator @Inject constructor() {
     }
 
     private fun generateStatement(
-        tag: String, funSpec: FunSpec, type: Type, param: String
+        tag: String, funSpec: FunSpec, type: Type, param: String, element: Element
     ): String {
         return when {
             funSpec.returnType in primitiveSet -> {
@@ -88,7 +91,7 @@ internal class MethodGenerator @Inject constructor() {
             type.isSerializable() -> {
                 "return apply { bundle.insertSerializable(\"$tag\", $param)}".wrapProof()
             }
-            else -> throw Throwable("Input type is not supported")
+            else -> throw ProcessorException(element, "Input type is not supported")
         }
     }
 
