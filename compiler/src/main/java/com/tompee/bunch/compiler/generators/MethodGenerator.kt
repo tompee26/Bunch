@@ -91,6 +91,36 @@ internal class MethodGenerator @Inject constructor() {
     }
 
     /**
+     * Generates the assertion methods.
+     *
+     * @param jProp Java properties
+     * @param kProp Kotlin properties
+     * @return the list of assertion methods
+     */
+    fun generateAsserts(jProp: JavaProperties, kProp: KotlinProperties): List<FunSpec> {
+        val typeName = ClassName("${jProp.getTargetTypeName()}", "Assert")
+
+        val companionSpecs =
+            kProp.getTypeSpec().typeSpecs.firstOrNull { it.isCompanion }?.funSpecs ?: emptyList()
+        return kProp.getTypeSpec().funSpecs.plus(companionSpecs)
+            .asSequence()
+            .map { pairWithJavaMethod(it, jProp) }
+            .filter { JavaProperties.getItemAnnotation(it.second) != null }
+            .map {
+                val (funSpec, element) = it
+                val annotation = JavaProperties.getItemAnnotation(element)!!
+                val paramName = if (annotation.name.isEmpty()) funSpec.name else annotation.name
+                val tag = if (annotation.tag.isEmpty()) "tag_${funSpec.name}" else annotation.tag
+
+                FunSpec.builder("has${paramName.capitalize()}")
+                    .returns(typeName)
+                    .addStatement("return Assert().add(\"$tag\")")
+                    .build()
+            }
+            .toList()
+    }
+
+    /**
      * Generates the collector method. The collector method exposes the internal bundle.
      *
      * @return the collector method function spec

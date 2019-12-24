@@ -16,5 +16,9 @@ class MainActivity : AppCompatActivity() {
         val tomatoes = Vegetables.from(bundle).squeezeTomatoes()
 
         val cabbage = Vegetables.from(bundle).cutCabbageOrThrow()
+        Args.withBoolean1(true)
+            .hasBoolean1()
+            .hasBundleWithDefault()
+            .assert()
     }
 }

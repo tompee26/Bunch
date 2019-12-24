@@ -18,6 +18,7 @@ internal class BunchGenerator @AssistedInject constructor(
     private val env: ProcessingEnvironment,
     private val methodGenerator: MethodGenerator,
     private val companionGenerator: CompanionGenerator,
+    private val assertGenerator: AssertGenerator,
     private val javaPropFactory: JavaProperties.Factory,
     private val kotlinPropFactory: KotlinProperties.Factory,
     @Assisted private val element: Element
@@ -45,7 +46,9 @@ internal class BunchGenerator @AssistedInject constructor(
                     .addModifiers(KModifier.PRIVATE)
                     .build()
             )
+            .addType(assertGenerator.generate(javaProperties, kotlinProperties))
             .addType(companionGenerator.generate(javaProperties, kotlinProperties))
+            .addFunctions(methodGenerator.generateAsserts(javaProperties, kotlinProperties))
             .addFunctions(methodGenerator.generateSetters(javaProperties, kotlinProperties))
             .addFunctions(methodGenerator.generateGetters(javaProperties, kotlinProperties))
             .addFunction(methodGenerator.generateCollector())
