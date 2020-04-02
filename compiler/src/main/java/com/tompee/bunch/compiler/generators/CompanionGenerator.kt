@@ -6,7 +6,6 @@ import com.tompee.bunch.compiler.*
 import com.tompee.bunch.compiler.extensions.wrapProof
 import com.tompee.bunch.compiler.properties.JavaProperties
 import com.tompee.bunch.compiler.properties.KotlinProperties
-import javax.inject.Inject
 import javax.lang.model.element.Element
 import javax.lang.model.element.ElementKind
 
@@ -14,7 +13,7 @@ import javax.lang.model.element.ElementKind
  * Generates the companion object of the Bunch. The methods include entry setter methods.
  */
 @KotlinPoetMetadataPreview
-internal class CompanionGenerator @Inject constructor() {
+internal class CompanionGenerator {
 
     /**
      * Generates the companion method type spec
@@ -73,7 +72,8 @@ internal class CompanionGenerator @Inject constructor() {
             jProp.getElement().enclosedElements.filter { it.kind == ElementKind.CLASS }
                 .flatMap { classes -> classes.enclosedElements.filter { it.kind == ElementKind.METHOD } }
         val jFun =
-            jProp.getMethods().plus(enclosedElements).firstOrNull { it.simpleName.toString() == funSpec.name }
+            jProp.getMethods().plus(enclosedElements)
+                .firstOrNull { it.simpleName.toString() == funSpec.name }
                 ?: throw ProcessorException(
                     jProp.getElement(),
                     "Some functions cannot be interpreted"

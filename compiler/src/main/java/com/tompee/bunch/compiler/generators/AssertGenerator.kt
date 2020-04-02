@@ -6,7 +6,6 @@ import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import com.tompee.bunch.compiler.ProcessorException
 import com.tompee.bunch.compiler.properties.JavaProperties
 import com.tompee.bunch.compiler.properties.KotlinProperties
-import javax.inject.Inject
 import javax.lang.model.element.Element
 import javax.lang.model.element.ElementKind
 
@@ -14,7 +13,7 @@ import javax.lang.model.element.ElementKind
  * Assertion class generator
  */
 @KotlinPoetMetadataPreview
-internal class AssertGenerator @Inject constructor() {
+internal class AssertGenerator {
 
     /**
      * Generates the assert type
@@ -98,7 +97,8 @@ internal class AssertGenerator @Inject constructor() {
             jProp.getElement().enclosedElements.filter { it.kind == ElementKind.CLASS }
                 .flatMap { classes -> classes.enclosedElements.filter { it.kind == ElementKind.METHOD } }
         val jFun =
-            jProp.getMethods().plus(enclosedElements).firstOrNull { it.simpleName.toString() == funSpec.name }
+            jProp.getMethods().plus(enclosedElements)
+                .firstOrNull { it.simpleName.toString() == funSpec.name }
                 ?: throw ProcessorException(
                     jProp.getElement(),
                     "Some functions cannot be interpreted"

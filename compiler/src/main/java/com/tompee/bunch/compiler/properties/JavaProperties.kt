@@ -1,19 +1,17 @@
 package com.tompee.bunch.compiler.properties
 
-import com.squareup.inject.assisted.Assisted
-import com.squareup.inject.assisted.AssistedInject
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.asClassName
 import com.tompee.bunch.annotation.Bunch
-import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.Element
 import javax.lang.model.element.ElementKind
 import javax.lang.model.element.TypeElement
 import javax.lang.model.type.TypeMirror
+import javax.lang.model.util.Elements
 
-internal class JavaProperties @AssistedInject constructor(
-    private val env: ProcessingEnvironment,
-    @Assisted private val typeElement: TypeElement
+internal class JavaProperties(
+    private val typeElement: TypeElement,
+    private val elements: Elements
 ) {
 
     companion object {
@@ -23,11 +21,6 @@ internal class JavaProperties @AssistedInject constructor(
         fun getItemAnnotation(element: Element): Bunch.Item? {
             return element.getAnnotation(Bunch.Item::class.java)
         }
-    }
-
-    @AssistedInject.Factory
-    interface Factory {
-        fun create(typeElement: TypeElement): JavaProperties
     }
 
     /**
@@ -72,6 +65,6 @@ internal class JavaProperties @AssistedInject constructor(
      * Returns the package name of the type element
      */
     fun getPackageName(): String {
-        return env.elementUtils.getPackageOf(typeElement).toString()
+        return elements.getPackageOf(typeElement).toString()
     }
 }
