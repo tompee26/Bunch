@@ -1,25 +1,55 @@
 apply plugin: 'java-library'
 apply plugin: 'kotlin'
-apply plugin: 'com.novoda.bintray-release'
+apply plugin: 'maven-publish'
 
-sourceCompatibility = JavaVersion.VERSION_1_7
-targetCompatibility = JavaVersion.VERSION_1_7
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
 
-publish {
-    def groupProjectID = 'com.tompee.bunch'
-    def artifactProjectID = 'annotations'
-    def publishVersionID = project.publishVersion
+Properties properties = new Properties()
+properties.load(project.rootProject.file('local.properties').newDataInputStream())
 
-    userOrg = 'tompee26'
-    repoName = 'Bunch'
-    groupId = groupProjectID
-    artifactId = artifactProjectID
-    publishVersion = publishVersionID
-    desc = 'Annotation package for Bunch'
-    website = 'https://github.com/tompee26/Bunch'
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            groupId = project.groupProjectID
+            artifactId = 'annotations'
+            version = project.publishVersion
+            from components.java
+
+            pom {
+                name = project.projectName
+                description = 'Annotation package for Bunch'
+                url = 'https://github.com/tompee26/Bunch'
+                licenses {
+                    license {
+                        name = 'MIT License'
+                        url = 'https://github.com/tompee26/Bunch/blob/master/LICENSE.md'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'tompee26'
+                        name = 'tompee'
+                        email = 'tompee26@gmail.com'
+                    }
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = "GithubPackages"
+            url = uri("https://maven.pkg.github.com/tompee26/Bunch")
+            credentials {
+                username = "tompee26"
+                password = properties.getProperty("token")
+            }
+        }
+    }
 }
+
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
 }

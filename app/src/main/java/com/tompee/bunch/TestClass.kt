@@ -3,7 +3,7 @@ package com.tompee.bunch
 import android.os.Bundle
 import android.os.Parcelable
 import com.tompee.bunch.annotation.Bunch
-import kotlinx.android.parcel.Parcelize
+import kotlinx.parcelize.Parcelize
 import java.io.Serializable
 
 open class ParentParcelable(val value: Int)
