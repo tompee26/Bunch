@@ -14,10 +14,22 @@ Bunch is wrapper over bundle that provides custom interface and type-safety. `Bu
 ## Getting started
 Note: `kapt` is needed to process annotations
 
-### Versions 0.3.0 and above
-Starting 0.3.0, all artifacts will be uploaded to Github Packages. Note that old packages will not be reuploaded anymore.
+### Version 0.4.0 and above
+Starting 0.4.0, all artifacts will be uploaded to Maven Central. Note that old versions will not be reuploaded anymore.
 
-In your application build.gradle, add the repository link and authentication details. For more information, check here: https://docs.github.com/en/packages/guides/configuring-gradle-for-use-with-github-packages#authenticating-to-github-packages
+In your module's `build.gradle`, add this
+
+```
+dependencies {
+    compileOnly "io.github.tompee26:bunch-annotations:$latest_version"
+    kapt "io.github.tompee26:bunch-compiler:$latest_version"
+}
+```
+
+### Versions 0.3.0
+Version 0.4.0 is available in Github packages.
+
+In your application `build.gradle`, add the repository link and authentication details. For more information, check here: https://docs.github.com/en/packages/guides/configuring-gradle-for-use-with-github-packages#authenticating-to-github-packages
 
 ```
 allprojects {
@@ -34,19 +46,19 @@ allprojects {
 
 ```
 
-And in your module's build.gradle, add this
+And in your module's `build.gradle`, add this
 
 ```
 dependencies {
-   compileOnly "com.tompee.bunch:annotations:$latest_version"
-   kapt "com.tompee.bunch:compiler:$latest_version"
+    compileOnly "com.tompee.bunch:annotations:$latest_version"
+    kapt "com.tompee.bunch:compiler:$latest_version"
 }
 ```
 
 ### Versions 0.2.0 and below
 All versions below and including 0.2.0 are hosted in jCenter. Since bintray and jCenter are being discontinued, you will no longer be able to do this.
 
-In your build.gradle, add the following dependencies:
+In your `build.gradle`, add the following dependencies:
 
 ```
 dependencies {
