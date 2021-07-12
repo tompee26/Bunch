@@ -4,6 +4,7 @@ import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import com.tompee.bunch.compiler.ProcessorException
+import com.tompee.bunch.compiler.extensions.capitalize
 import com.tompee.bunch.compiler.properties.JavaProperties
 import com.tompee.bunch.compiler.properties.KotlinProperties
 import javax.lang.model.element.Element

@@ -3,6 +3,7 @@ package com.tompee.bunch.compiler.generators
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import com.tompee.bunch.compiler.*
+import com.tompee.bunch.compiler.extensions.capitalize
 import com.tompee.bunch.compiler.extensions.wrapProof
 import com.tompee.bunch.compiler.properties.JavaProperties
 import com.tompee.bunch.compiler.properties.KotlinProperties
