@@ -23,10 +23,21 @@ allprojects {
     }
 }
 
-project.ext.set("projectName", "Bunch")
-project.ext.set("groupProjectID", "com.tompee.bunch")
-project.ext.set("publishVersion", "0.3.0")
+project.ext.set("groupId", "io.github.tompee26")
+project.ext.set("versionCode", "0.4.0")
+project.ext.set("publishUrl", "https://github.com/tompee26/Bunch")
+project.ext.set("license", "MIT License")
+project.ext.set("licenseUrl", "https://github.com/tompee26/Bunch/blob/master/LICENSE.md")
+project.ext.set("developerId", "tompee26")
+project.ext.set("developerName", "Tompee Balauag")
+project.ext.set("developerEmail", "tompee26@gmail.com")
+project.ext.set("scmConnection", "scm:git:github.com/tompee26/Bunch.git")
+project.ext.set("scmDevConnection", "scm:git:ssh://github.com/tompee26/Bunch.git")
+project.ext.set("scmUrl", "https://github.com/tompee26/Bunch/tree/master")
 
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
+
+apply plugin: 'io.github.gradle-nexus.publish-plugin'
+apply from: "${rootDir}/scripts/publish-root.gradle"
