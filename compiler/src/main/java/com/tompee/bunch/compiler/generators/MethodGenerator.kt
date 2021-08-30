@@ -7,10 +7,8 @@ import com.sun.tools.javac.code.Type
 import com.tompee.bunch.compiler.*
 import com.tompee.bunch.compiler.extensions.capitalize
 import com.tompee.bunch.compiler.extensions.wrapProof
-import com.tompee.bunch.compiler.properties.JavaProperties
-import com.tompee.bunch.compiler.properties.KotlinProperties
+import com.tompee.bunch.compiler.properties.TypeElementProperty
 import javax.lang.model.element.Element
-import javax.lang.model.element.ElementKind
 
 /**
  * Generates the instance methods of the Bunch. The methods include setter methods, nullable getter methods,
@@ -57,58 +55,39 @@ internal class MethodGenerator {
     /**
      * Generates the instance setter methods. It checks for both source class functions and companion object methods
      *
-     * @param jProp Java properties
-     * @param kProp Kotlin properties
      * @return the list of function specs that will be generated
      */
-    fun generateSetters(jProp: JavaProperties, kProp: KotlinProperties): List<FunSpec> {
-        val companionSpecs =
-            kProp.getTypeSpec().typeSpecs.firstOrNull { it.isCompanion }?.funSpecs ?: emptyList()
-        return kProp.getTypeSpec().funSpecs.plus(companionSpecs)
-            .asSequence()
-            .map { pairWithJavaMethod(it, jProp) }
-            .filter { JavaProperties.getItemAnnotation(it.second) != null }
-            .flatMap { generateSetterSequence(it.first, it.second, jProp.getTargetTypeName()) }
+    fun generateSetters(prop: TypeElementProperty): List<FunSpec> {
+        return prop.getFunSpecElementPairList()
+            .flatMap { generateSetterSequence(it.first, it.second, prop.targetTypeName) }
             .toList()
     }
 
     /**
      * Generates the instance getter methods. It checks for both source class functions and companion object methods
      *
-     * @param jProp Java properties
-     * @param kProp Kotlin properties
      * @return the list of function specs that will be generated
      */
-    fun generateGetters(jProp: JavaProperties, kProp: KotlinProperties): List<FunSpec> {
-        val companionSpecs =
-            kProp.getTypeSpec().typeSpecs.firstOrNull { it.isCompanion }?.funSpecs ?: emptyList()
-        return kProp.getTypeSpec().funSpecs.plus(companionSpecs)
-            .asSequence()
-            .map { pairWithJavaMethod(it, jProp) }
-            .filter { JavaProperties.getItemAnnotation(it.second) != null }
-            .flatMap { generateGetterSequence(jProp.getElementName(), it.first, it.second) }
+    fun generateGetters(prop: TypeElementProperty): List<FunSpec> {
+        return prop.getFunSpecElementPairList()
+            .flatMap {
+                generateGetterSequence(prop.className, it.first, it.second)
+            }
             .toList()
     }
 
     /**
      * Generates the assertion methods.
      *
-     * @param jProp Java properties
-     * @param kProp Kotlin properties
      * @return the list of assertion methods
      */
-    fun generateAsserts(jProp: JavaProperties, kProp: KotlinProperties): List<FunSpec> {
-        val typeName = ClassName("${jProp.getTargetTypeName()}", "Assert")
+    fun generateAsserts(prop: TypeElementProperty): List<FunSpec> {
+        val typeName = ClassName("${prop.targetTypeName}", "Assert")
 
-        val companionSpecs =
-            kProp.getTypeSpec().typeSpecs.firstOrNull { it.isCompanion }?.funSpecs ?: emptyList()
-        return kProp.getTypeSpec().funSpecs.plus(companionSpecs)
-            .asSequence()
-            .map { pairWithJavaMethod(it, jProp) }
-            .filter { JavaProperties.getItemAnnotation(it.second) != null }
+        return prop.getFunSpecElementPairList()
             .map {
                 val (funSpec, element) = it
-                val annotation = JavaProperties.getItemAnnotation(element)!!
+                val annotation = TypeElementProperty.getItemAnnotation(element)!!
                 val paramName = if (annotation.name.isEmpty()) funSpec.name else annotation.name
                 val tag = if (annotation.tag.isEmpty()) "tag_${funSpec.name}" else annotation.tag
 
@@ -133,32 +112,6 @@ internal class MethodGenerator {
     }
 
     /**
-     * Pairs a kotlin method in the class and/or the companion object with its Java symbol counterpart.
-     * Both are necessary because kotlin types are easier to work with in terms of type names and
-     * Java symbols are necessary for type hierarchy checking.
-     *
-     * @param funSpec kotlin function spec
-     * @param jProp Java property
-     * @return the pair of kotlin and java method
-     */
-    private fun pairWithJavaMethod(
-        funSpec: FunSpec,
-        jProp: JavaProperties
-    ): Pair<FunSpec, Element> {
-        val enclosedElements =
-            jProp.getElement().enclosedElements.filter { it.kind == ElementKind.CLASS }
-                .flatMap { classes -> classes.enclosedElements.filter { it.kind == ElementKind.METHOD } }
-        val jFun =
-            jProp.getMethods().plus(enclosedElements)
-                .firstOrNull { it.simpleName.toString() == funSpec.name }
-                ?: throw ProcessorException(
-                    jProp.getElement(),
-                    "Some functions cannot be interpreted"
-                )
-        return funSpec to jFun
-    }
-
-    /**
      * Generates the setter function spec sequence. This takes into consideration the custom tags
      * and setter functions.
      *
@@ -171,7 +124,7 @@ internal class MethodGenerator {
         element: Element,
         name: TypeName
     ): Sequence<FunSpec> {
-        val annotation = JavaProperties.getItemAnnotation(element)!!
+        val annotation = TypeElementProperty.getItemAnnotation(element)!!
         val paramName = if (annotation.name.isEmpty()) funSpec.name else annotation.name
         val prefixes =
             if (annotation.setters.isEmpty()) arrayOf("with") else annotation.setters
@@ -242,13 +195,14 @@ internal class MethodGenerator {
     private fun generateGetterSequence(
         sourceName: TypeName,
         funSpec: FunSpec,
-        element: Element
+        element: Element,
     ): Sequence<FunSpec> {
-        val annotation = JavaProperties.getItemAnnotation(element)!!
+        val annotation = TypeElementProperty.getItemAnnotation(element)!!
         val paramName = if (annotation.name.isEmpty()) funSpec.name else annotation.name
         val prefixes =
             if (annotation.getters.isEmpty()) arrayOf("get") else annotation.getters
         val tag = if (annotation.tag.isEmpty()) "tag_${funSpec.name}" else annotation.tag
+
         val method = element as Symbol.MethodSymbol
         val type = (method.type as? Type.MethodType)?.restype
             ?: throw ProcessorException(element, "Input type not supported")

@@ -3,14 +3,12 @@ package com.tompee.bunch.compiler
 import com.google.auto.common.BasicAnnotationProcessor
 import com.google.common.collect.SetMultimap
 import com.squareup.kotlinpoet.*
-import com.squareup.kotlinpoet.classinspector.elements.ElementsClassInspector
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import com.tompee.bunch.annotation.Bunch
 import com.tompee.bunch.compiler.generators.AssertGenerator
 import com.tompee.bunch.compiler.generators.CompanionGenerator
 import com.tompee.bunch.compiler.generators.MethodGenerator
-import com.tompee.bunch.compiler.properties.JavaProperties
-import com.tompee.bunch.compiler.properties.KotlinProperties
+import com.tompee.bunch.compiler.properties.TypeElementProperty
 import javax.annotation.processing.Filer
 import javax.annotation.processing.Messager
 import javax.lang.model.element.Element
@@ -26,8 +24,6 @@ internal class GeneratorStep(
     private val messager: Messager,
     private val filer: Filer
 ) : BasicAnnotationProcessor.ProcessingStep {
-
-    private val classInspector = ElementsClassInspector.create(elements, types)
 
     override fun process(elementsByAnnotation: SetMultimap<Class<out Annotation>, Element>): MutableSet<out Element> {
         elementsByAnnotation.entries()
@@ -47,29 +43,23 @@ internal class GeneratorStep(
     }
 
     private fun generate(element: TypeElement) {
-        val javaProperties = JavaProperties(element, elements)
-        val kotlinProperties = KotlinProperties(element, elements, classInspector)
+        val prop = TypeElementProperty(element, elements, types)
 
-        val name = javaProperties.getBunchAnnotation().name
-
-        val fileSpec = FileSpec.builder(javaProperties.getPackageName(), name)
-            .addType(generateClassSpec(name, kotlinProperties, javaProperties))
+        val name = prop.bunchAnnotation.name
+        val fileSpec = FileSpec.builder(prop.packageName, name)
+            .addType(generateClassSpec(name, prop))
             .build()
         fileSpec.writeTo(filer)
     }
 
-    private fun generateClassSpec(
-        name: String,
-        kotlinProperties: KotlinProperties,
-        javaProperties: JavaProperties
-    ): TypeSpec {
+    private fun generateClassSpec(name: String, prop: TypeElementProperty): TypeSpec {
         val constructor = FunSpec.constructorBuilder()
             .addParameter("bundle", BUNDLE)
             .build()
 
         val methodGenerator = MethodGenerator()
         return TypeSpec.classBuilder(name)
-            .apply { if (kotlinProperties.isInternal()) addModifiers(KModifier.INTERNAL) }
+            .apply { if (prop.isInternal) addModifiers(KModifier.INTERNAL) }
             .primaryConstructor(constructor)
             .addProperty(
                 PropertySpec.builder("bundle", BUNDLE)
@@ -77,11 +67,11 @@ internal class GeneratorStep(
                     .addModifiers(KModifier.PRIVATE)
                     .build()
             )
-            .addType(AssertGenerator().generate(javaProperties, kotlinProperties))
-            .addType(CompanionGenerator().generate(javaProperties, kotlinProperties))
-            .addFunctions(methodGenerator.generateAsserts(javaProperties, kotlinProperties))
-            .addFunctions(methodGenerator.generateSetters(javaProperties, kotlinProperties))
-            .addFunctions(methodGenerator.generateGetters(javaProperties, kotlinProperties))
+            .addType(AssertGenerator().generate(prop))
+            .addType(CompanionGenerator().generate(prop))
+            .addFunctions(methodGenerator.generateAsserts(prop))
+            .addFunctions(methodGenerator.generateSetters(prop))
+            .addFunctions(methodGenerator.generateGetters(prop))
             .addFunction(methodGenerator.generateCollector())
             .build()
     }

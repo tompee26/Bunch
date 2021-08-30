@@ -5,10 +5,8 @@ import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import com.tompee.bunch.compiler.*
 import com.tompee.bunch.compiler.extensions.capitalize
 import com.tompee.bunch.compiler.extensions.wrapProof
-import com.tompee.bunch.compiler.properties.JavaProperties
-import com.tompee.bunch.compiler.properties.KotlinProperties
+import com.tompee.bunch.compiler.properties.TypeElementProperty
 import javax.lang.model.element.Element
-import javax.lang.model.element.ElementKind
 
 /**
  * Generates the companion object of the Bunch. The methods include entry setter methods.
@@ -19,15 +17,13 @@ internal class CompanionGenerator {
     /**
      * Generates the companion method type spec
      *
-     * @param jProp Java properties
-     * @param kProp Kotlin properties
      * @return the companion object type spec
      */
-    fun generate(jProp: JavaProperties, kProp: KotlinProperties): TypeSpec {
+    fun generate(prop: TypeElementProperty): TypeSpec {
         return TypeSpec.companionObjectBuilder()
-            .addFunctions(generateEntryFunction(jProp, kProp))
+            .addFunctions(generateEntryFunction(prop))
             .addFunction(createDuplicateFunction())
-            .addFunction(crossFunction(jProp))
+            .addFunction(crossFunction(prop))
             .addFunctions(createSetters())
             .addFunction(createParcelableSetter())
             .addFunction(createParcelableListSetter())
@@ -38,48 +34,12 @@ internal class CompanionGenerator {
     /**
      * Generates the entye methods. It checks for both source class functions and companion object methods
      *
-     * @param jProp Java properties
-     * @param kProp Kotlin properties
      * @return the list of function specs that will be generated
      */
-    private fun generateEntryFunction(
-        jProp: JavaProperties,
-        kProp: KotlinProperties
-    ): List<FunSpec> {
-        val companionSpecs =
-            kProp.getTypeSpec().typeSpecs.firstOrNull { it.isCompanion }?.funSpecs ?: emptyList()
-        return kProp.getTypeSpec().funSpecs.plus(companionSpecs)
-            .asSequence()
-            .map { funSpec -> pairWithJavaMethod(funSpec, jProp) }
-            .filter { JavaProperties.getItemAnnotation(it.second) != null }
-            .flatMap { generateSequence(it.first, it.second, jProp.getTargetTypeName()) }
+    private fun generateEntryFunction(prop: TypeElementProperty): List<FunSpec> {
+        return prop.getFunSpecElementPairList()
+            .flatMap { generateSequence(it.first, it.second, prop.targetTypeName) }
             .toList()
-    }
-
-    /**
-     * Pairs a kotlin method in the class and/or the companion object with its Java symbol counterpart.
-     * Both are necessary because kotlin types are easier to work with in terms of type names and
-     * Java symbols are necessary for type hierarchy checking.
-     *
-     * @param funSpec kotlin function spec
-     * @param jProp Java property
-     * @return the pair of kotlin and java method
-     */
-    private fun pairWithJavaMethod(
-        funSpec: FunSpec,
-        jProp: JavaProperties
-    ): Pair<FunSpec, Element> {
-        val enclosedElements =
-            jProp.getElement().enclosedElements.filter { it.kind == ElementKind.CLASS }
-                .flatMap { classes -> classes.enclosedElements.filter { it.kind == ElementKind.METHOD } }
-        val jFun =
-            jProp.getMethods().plus(enclosedElements)
-                .firstOrNull { it.simpleName.toString() == funSpec.name }
-                ?: throw ProcessorException(
-                    jProp.getElement(),
-                    "Some functions cannot be interpreted"
-                )
-        return funSpec to jFun
     }
 
     /**
@@ -95,7 +55,7 @@ internal class CompanionGenerator {
         element: Element,
         name: TypeName
     ): Sequence<FunSpec> {
-        val annotation = JavaProperties.getItemAnnotation(element)!!
+        val annotation = TypeElementProperty.getItemAnnotation(element)!!
         val paramName = if (annotation.name.isEmpty()) funSpec.name else annotation.name
         val prefixes =
             if (annotation.setters.isEmpty()) arrayOf("with") else annotation.setters
@@ -133,11 +93,11 @@ internal class CompanionGenerator {
     /**
      * Generates the world crossing functions
      */
-    private fun crossFunction(jProp: JavaProperties): FunSpec {
+    private fun crossFunction(prop: TypeElementProperty): FunSpec {
         return FunSpec.builder("from")
             .addParameter("bundle", BUNDLE)
-            .returns(jProp.getTargetTypeName())
-            .addStatement("return ${jProp.getTargetTypeName()}(bundle.duplicate())".wrapProof())
+            .returns(prop.targetTypeName)
+            .addStatement("return ${prop.targetTypeName}(bundle.duplicate())".wrapProof())
             .build()
     }
 

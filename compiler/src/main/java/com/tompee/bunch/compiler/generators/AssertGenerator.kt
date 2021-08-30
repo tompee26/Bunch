@@ -3,12 +3,8 @@ package com.tompee.bunch.compiler.generators
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
-import com.tompee.bunch.compiler.ProcessorException
 import com.tompee.bunch.compiler.extensions.capitalize
-import com.tompee.bunch.compiler.properties.JavaProperties
-import com.tompee.bunch.compiler.properties.KotlinProperties
-import javax.lang.model.element.Element
-import javax.lang.model.element.ElementKind
+import com.tompee.bunch.compiler.properties.TypeElementProperty
 
 /**
  * Assertion class generator
@@ -19,11 +15,11 @@ internal class AssertGenerator {
     /**
      * Generates the assert type
      */
-    fun generate(jProp: JavaProperties, kProp: KotlinProperties): TypeSpec {
+    fun generate(prop: TypeElementProperty): TypeSpec {
         val listName = ClassName("java.util", "LinkedList")
             .parameterizedBy(STRING)
 
-        val typeName = ClassName("${jProp.getTargetTypeName()}", "Assert")
+        val typeName = ClassName("${prop.targetTypeName}", "Assert")
         return TypeSpec.classBuilder("Assert")
             .addModifiers(KModifier.INNER)
             .addProperty(
@@ -47,29 +43,21 @@ internal class AssertGenerator {
                     .endControlFlow()
                     .build()
             )
-            .addFunctions(generateAsserts(jProp, kProp))
+            .addFunctions(generateAsserts(prop))
             .build()
     }
 
     /**
      * Generates the assertion methods.
      *
-     * @param jProp Java properties
-     * @param kProp Kotlin properties
      * @return the list of assertion methods
      */
-    private fun generateAsserts(jProp: JavaProperties, kProp: KotlinProperties): List<FunSpec> {
-        val typeName = ClassName("${jProp.getTargetTypeName()}", "Assert")
+    private fun generateAsserts(prop: TypeElementProperty): List<FunSpec> {
+        val typeName = ClassName("${prop.targetTypeName}", "Assert")
 
-        val companionSpecs =
-            kProp.getTypeSpec().typeSpecs.firstOrNull { it.isCompanion }?.funSpecs ?: emptyList()
-        return kProp.getTypeSpec().funSpecs.plus(companionSpecs)
-            .asSequence()
-            .map { pairWithJavaMethod(it, jProp) }
-            .filter { JavaProperties.getItemAnnotation(it.second) != null }
-            .map {
-                val (funSpec, element) = it
-                val annotation = JavaProperties.getItemAnnotation(element)!!
+        return prop.getFunSpecElementPairList()
+            .map { (funSpec, element) ->
+                val annotation = TypeElementProperty.getItemAnnotation(element)!!
                 val paramName = if (annotation.name.isEmpty()) funSpec.name else annotation.name
                 val tag = if (annotation.tag.isEmpty()) "tag_${funSpec.name}" else annotation.tag
 
@@ -81,29 +69,5 @@ internal class AssertGenerator {
             .toList()
     }
 
-    /**
-     * Pairs a kotlin method in the class and/or the companion object with its Java symbol counterpart.
-     * Both are necessary because kotlin types are easier to work with in terms of type names and
-     * Java symbols are necessary for type hierarchy checking.
-     *
-     * @param funSpec kotlin function spec
-     * @param jProp Java property
-     * @return the pair of kotlin and java method
-     */
-    private fun pairWithJavaMethod(
-        funSpec: FunSpec,
-        jProp: JavaProperties
-    ): Pair<FunSpec, Element> {
-        val enclosedElements =
-            jProp.getElement().enclosedElements.filter { it.kind == ElementKind.CLASS }
-                .flatMap { classes -> classes.enclosedElements.filter { it.kind == ElementKind.METHOD } }
-        val jFun =
-            jProp.getMethods().plus(enclosedElements)
-                .firstOrNull { it.simpleName.toString() == funSpec.name }
-                ?: throw ProcessorException(
-                    jProp.getElement(),
-                    "Some functions cannot be interpreted"
-                )
-        return funSpec to jFun
-    }
+
 }
