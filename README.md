@@ -21,7 +21,7 @@ In your module's `build.gradle`, add this
 
 ```
 dependencies {
-    compileOnly "io.github.tompee26:bunch-annotations:$latest_version"
+    implementation "io.github.tompee26:bunch-annotations:$latest_version"
     kapt "io.github.tompee26:bunch-compiler:$latest_version"
 }
 ```
