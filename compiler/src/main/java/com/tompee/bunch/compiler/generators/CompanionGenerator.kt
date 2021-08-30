@@ -2,11 +2,13 @@ package com.tompee.bunch.compiler.generators
 
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
+import com.tompee.bunch.annotation.Bunch
 import com.tompee.bunch.compiler.*
 import com.tompee.bunch.compiler.extensions.capitalize
+import com.tompee.bunch.compiler.extensions.typeName
 import com.tompee.bunch.compiler.extensions.wrapProof
-import com.tompee.bunch.compiler.properties.TypeElementProperty
-import javax.lang.model.element.Element
+import com.tompee.bunch.compiler.properties.ElementMethod
+import javax.lang.model.element.TypeElement
 
 /**
  * Generates the companion object of the Bunch. The methods include entry setter methods.
@@ -19,11 +21,14 @@ internal class CompanionGenerator {
      *
      * @return the companion object type spec
      */
-    fun generate(prop: TypeElementProperty): TypeSpec {
+    fun generate(element: TypeElement, bunch: Bunch, packageName: String): TypeSpec {
+        val targetTypeName = ClassName(packageName, bunch.name)
+        val methods = ElementMethod(element).getAllInformation()
+
         return TypeSpec.companionObjectBuilder()
-            .addFunctions(generateEntryFunction(prop))
+            .addFunctions(generateEntryFunction(targetTypeName, methods))
             .addFunction(createDuplicateFunction())
-            .addFunction(crossFunction(prop))
+            .addFunction(crossFunction(targetTypeName))
             .addFunctions(createSetters())
             .addFunction(createParcelableSetter())
             .addFunction(createParcelableListSetter())
@@ -36,45 +41,22 @@ internal class CompanionGenerator {
      *
      * @return the list of function specs that will be generated
      */
-    private fun generateEntryFunction(prop: TypeElementProperty): List<FunSpec> {
-        return prop.getFunSpecElementPairList()
-            .flatMap { generateSequence(it.first, it.second, prop.targetTypeName) }
-            .toList()
-    }
-
-    /**
-     * Generates the setter function spec sequence. This takes into consideration the custom tags
-     * and setter functions.
-     *
-     * @param funSpec kotlin function spec
-     * @param element the method element (ElementKind.METHOD)
-     * @param name the output class name
-     */
-    private fun generateSequence(
-        funSpec: FunSpec,
-        element: Element,
-        name: TypeName
-    ): Sequence<FunSpec> {
-        val annotation = TypeElementProperty.getItemAnnotation(element)!!
-        val paramName = if (annotation.name.isEmpty()) funSpec.name else annotation.name
-        val prefixes =
-            if (annotation.setters.isEmpty()) arrayOf("with") else annotation.setters
-
-        return prefixes.asSequence().map {
-            val functionName = "$it${paramName.capitalize()}"
-            FunSpec.builder(functionName)
-                .addParameter(
-                    ParameterSpec(
-                        paramName,
-                        funSpec.returnType ?: throw ProcessorException(
-                            element,
-                            "Input type not supported"
-                        )
-                    )
-                )
-                .returns(name)
-                .addStatement("return ${name}(Bundle()).$functionName($paramName)".wrapProof())
-                .build()
+    private fun generateEntryFunction(
+        targetName: ClassName,
+        methods: List<ElementMethod.MethodInfo>
+    ): List<FunSpec> {
+        return methods.flatMap { info ->
+            val paramName = if (info.item.name.isEmpty()) info.kotlin.name else info.item.name
+            val prefixes =
+                if (info.item.setters.isEmpty()) arrayOf("with") else info.item.setters
+            prefixes.map {
+                val functionName = "$it${paramName.capitalize()}"
+                FunSpec.builder(functionName)
+                    .addParameter(ParameterSpec(paramName, info.kotlin.returnType.typeName))
+                    .returns(targetName)
+                    .addStatement("return ${targetName}(Bundle()).$functionName($paramName)".wrapProof())
+                    .build()
+            }
         }
     }
 
@@ -93,11 +75,11 @@ internal class CompanionGenerator {
     /**
      * Generates the world crossing functions
      */
-    private fun crossFunction(prop: TypeElementProperty): FunSpec {
+    private fun crossFunction(targetName: ClassName): FunSpec {
         return FunSpec.builder("from")
             .addParameter("bundle", BUNDLE)
-            .returns(prop.targetTypeName)
-            .addStatement("return ${prop.targetTypeName}(bundle.duplicate())".wrapProof())
+            .returns(targetName)
+            .addStatement("return ${targetName}(bundle.duplicate())".wrapProof())
             .build()
     }
 
