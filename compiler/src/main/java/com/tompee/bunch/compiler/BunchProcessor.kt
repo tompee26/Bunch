@@ -34,18 +34,4 @@ internal class BunchProcessor : BasicAnnotationProcessor() {
             )
         )
     }
-
-//    override fun process(set: MutableSet<out TypeElement>?, env: RoundEnvironment?): Boolean {
-//        appComponent = DaggerAppComponent.factory().create(processingEnv)
-//        appComponent.inject(this)
-//
-//        env?.getElementsAnnotatedWith(Bunch::class.java)?.forEach {
-//            try {
-//                generatorFactory.create(it).generate()
-//            } catch (e: ProcessorException) {
-//                processingEnv.messager.printMessage(Diagnostic.Kind.ERROR, e.message, e.element)
-//            }
-//        }
-//        return true
-//    }
 }

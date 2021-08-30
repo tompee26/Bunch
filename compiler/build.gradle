@@ -70,4 +70,5 @@ dependencies {
     implementation "com.squareup:kotlinpoet-metadata:$kotlinPoet"
     implementation "com.squareup:kotlinpoet-metadata-specs:$kotlinPoet"
     implementation "com.squareup:kotlinpoet-classinspector-elements:$kotlinPoet"
+    implementation "org.jetbrains.kotlinx:kotlinx-metadata-jvm:0.3.0"
 }
