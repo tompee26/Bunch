@@ -11,6 +11,7 @@ import com.tompee.bunch.compiler.extensions.parseAnnotation
 import com.tompee.bunch.compiler.generators.AssertGenerator
 import com.tompee.bunch.compiler.generators.CompanionGenerator
 import com.tompee.bunch.compiler.generators.MethodGenerator
+import javax.annotation.Generated
 import javax.annotation.processing.Filer
 import javax.annotation.processing.Messager
 import javax.lang.model.element.Element
@@ -67,6 +68,7 @@ internal class GeneratorStep(
         val methodGenerator = MethodGenerator(element, types, elements, bunch, packageName)
         return TypeSpec.classBuilder(bunch.name)
             .addOriginatingElement(element)
+            .addAnnotation(generatedAnnotation())
             .apply { if (element.isInternal) addModifiers(KModifier.INTERNAL) }
             .primaryConstructor(constructor)
             .addProperty(
@@ -81,6 +83,16 @@ internal class GeneratorStep(
             .addFunctions(methodGenerator.generateSetters())
             .addFunctions(methodGenerator.generateGetters())
             .addFunction(methodGenerator.generateCollector())
+            .build()
+    }
+
+    /**
+     * Adds a Generated annotation to the class
+     */
+    private fun generatedAnnotation(): AnnotationSpec {
+        return AnnotationSpec.builder(Generated::class.asClassName())
+            .addMember("%S", Bunch::class.java.canonicalName)
+            .addMember("comments = %S", "https://github.com/tompee26/Bunch")
             .build()
     }
 }
